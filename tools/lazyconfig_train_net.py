@@ -74,7 +74,7 @@ def do_train(args, cfg):
     trainer = (AMPTrainer if cfg.train.amp.enabled else SimpleTrainer)(model, train_loader, optim)
     checkpointer = DetectionCheckpointer(
         model,
-        cfg.train.output_dir,
+        cfg.train.output_dir, #TODO: cfg.opt. 
         trainer=trainer,
     )
     trainer.register_hooks(
@@ -94,7 +94,7 @@ def do_train(args, cfg):
         ]
     )
 
-    checkpointer.resume_or_load(cfg.train.init_checkpoint, resume=args.resume)
+    checkpointer.resume_or_load(cfg.train.init_checkpoint, resume=args.resume)#cgf.opt
     if args.resume and checkpointer.has_checkpoint():
         # The checkpoint stores the training iteration that just finished, thus we start
         # at the next iteration
@@ -107,6 +107,7 @@ def do_train(args, cfg):
 def main(args):
     cfg = LazyConfig.load(args.config_file)
     cfg = LazyConfig.apply_overrides(cfg, args.opts)
+    
     default_setup(cfg, args)
 
     if args.eval_only:

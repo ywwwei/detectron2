@@ -60,6 +60,8 @@ class DetectionCheckpointer(Checkpointer):
             path = parsed_url._replace(query="").geturl()  # remove query from filename
             path = self.path_manager.get_local_path(path)
         ret = super().load(path, *args, **kwargs)
+        # checkpoint = self._load_file(path)
+        # incompatible = self._load_model(checkpoint)
 
         if need_sync:
             logger.info("Broadcasting model states from main worker ...")
@@ -97,7 +99,9 @@ class DetectionCheckpointer(Checkpointer):
             return {"model": model_state, "__author__": "pycls", "matching_heuristics": True}
 
         loaded = self._torch_load(filename)
-        if "model" not in loaded:
+        if "state_dict" in loaded:
+            loaded["model"] = loaded["state_dict"]
+        elif "model" not in loaded:
             loaded = {"model": loaded}
         assert self._parsed_url_during_load is not None, "`_load_file` must be called inside `load`"
         parsed_url = self._parsed_url_during_load
@@ -108,12 +112,14 @@ class DetectionCheckpointer(Checkpointer):
             raise ValueError(
                 f"Unsupported query remaining: f{queries}, orginal filename: {parsed_url.geturl()}"
             )
+        # mae loaded: ['state_dict', 'optimizer', 'loss_scaler', 'nn_acc', 'epoch', 'model']
         return loaded
 
     def _torch_load(self, f):
         return super()._load_file(f)
 
     def _load_model(self, checkpoint):
+        print("checkpoint.get(\"matching_heuristics\", False)",checkpoint.get("matching_heuristics", False))
         if checkpoint.get("matching_heuristics", False):
             self._convert_ndarray_to_tensor(checkpoint["model"])
             # convert weights by name-matching heuristics
@@ -123,7 +129,8 @@ class DetectionCheckpointer(Checkpointer):
                 c2_conversion=checkpoint.get("__author__", None) == "Caffe2",
             )
         # for non-caffe2 models, use standard ways to load it
-        incompatible = super()._load_model(checkpoint)
+        incompatible = super()._load_model(checkpoint) # remove the "module" prefix
+        print("incompatible",incompatible)
 
         model_buffers = dict(self.model.named_buffers(recurse=False))
         for k in ["pixel_mean", "pixel_std"]:

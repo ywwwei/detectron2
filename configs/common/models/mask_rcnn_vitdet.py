@@ -14,9 +14,10 @@ model.input_format = "RGB"
 # Base
 embed_dim, depth, num_heads, dp = 768, 12, 12, 0.1
 # Creates Simple Feature Pyramid from ViT backbone
+image_size = 640 #1024
 model.backbone = L(SimpleFeaturePyramid)(
     net=L(ViT)(  # Single-scale ViT backbone
-        img_size=1024,
+        img_size=image_size,
         patch_size=16,
         embed_dim=embed_dim,
         depth=depth,
@@ -46,7 +47,7 @@ model.backbone = L(SimpleFeaturePyramid)(
     scale_factors=(4.0, 2.0, 1.0, 0.5),
     top_block=L(LastLevelMaxPool)(),
     norm="LN",
-    square_pad=1024,
+    square_pad=image_size,
 )
 
 model.roi_heads.box_head.conv_norm = model.roi_heads.mask_head.conv_norm = "LN"
