@@ -5804,3 +5804,1240 @@ srun: Job step aborted: Waiting up to 122 seconds for job step to finish.
 slurmstepd: error: *** STEP 316548.0 ON euler22 CANCELLED AT 2023-02-28T06:39:44 ***
 srun: error: euler22: task 0: Killed
 srun: job 316597 queued and waiting for resources
+srun: job 316597 has been allocated resources
+[02/28 17:31:33 detectron2]: Rank of current process: 0. World size: 4
+[02/28 17:31:38 detectron2]: Environment info:
+----------------------  ---------------------------------------------------------------------------------------
+sys.platform            linux
+Python                  3.7.16 (default, Jan 17 2023, 22:20:44) [GCC 11.2.0]
+numpy                   1.21.5
+detectron2              0.6 @/srv/home/pmorgado/yibing/detectron2/detectron2
+Compiler                GCC 12.2
+CUDA compiler           not available
+DETECTRON2_ENV_MODULE   <not set>
+PyTorch                 1.13.1 @/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch
+PyTorch debug build     False
+GPU available           Yes
+GPU 0,1,2,3             NVIDIA RTX A4500 (arch=8.6)
+Driver version          525.78.01
+CUDA_HOME               /srv/home/pmorgado/anaconda3/envs/pt113
+Pillow                  9.3.0
+torchvision             0.14.1 @/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torchvision
+torchvision arch flags  3.5, 5.0, 6.0, 7.0, 7.5, 8.0, 8.6
+fvcore                  0.1.5.post20221221
+iopath                  0.1.9
+cv2                     Not found
+----------------------  ---------------------------------------------------------------------------------------
+PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.4-Product Build 20210904 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.6.0 (Git Hash 52b5f107dd9cf10910aaa19cb47f3abf9b349815)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.7
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_37,code=compute_37
+  - CuDNN 8.5
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.7, CUDNN_VERSION=8.5.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -fabi-version=11 -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wunused-local-typedefs -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.13.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+[02/28 17:31:38 detectron2]: Command line arguments: Namespace(config_file='/srv/home/pmorgado/yibing/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_100ep.py', dist_url='tcp://127.0.0.1:57709', eval_only=False, machine_rank=0, num_gpus=4, num_machines=1, opts=[], resume=False)
+[02/28 17:31:38 detectron2]: Contents of args.config_file=/srv/home/pmorgado/yibing/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_100ep.py:
+from functools import partial
+from fvcore.common.param_scheduler import MultiStepParamScheduler
+
+from detectron2 import model_zoo
+from detectron2.config import LazyCall as L
+from detectron2.solver import WarmupParamScheduler
+from detectron2.modeling.backbone.vit import get_vit_lr_decay_rate
+
+import detectron2.data.transforms as T
+
+# from ..common.coco_loader_lsj import dataloader
+
+import os
+
+model = model_zoo.get_config("common/models/mask_rcnn_vitdet.py").model #configs/common/models/mask_rcnn_vitdet.py
+image_size = 480
+model.backbone.net.img_size = image_size
+model.backbone.square_pad = image_size
+
+dataloader = model_zoo.get_config("common/data/coco.py").dataloader
+dataloader.train.total_batch_size = 28 #5(640) /7(512) image per gpu #4 gpu
+dataloader.train.mapper.augmentations = [
+    L(T.RandomFlip)(horizontal=True),  # flip first
+    L(T.ResizeScale)(
+        min_scale=0.1, max_scale=2.0, target_height=image_size, target_width=image_size
+    ),
+    L(T.FixedSizeCrop)(crop_size=(image_size, image_size), pad=False),
+]
+dataloader.train.mapper.image_format = "RGB"
+# recompute boxes due to cropping
+dataloader.train.mapper.recompute_boxes = True
+
+dataloader.test.mapper.augmentations = [
+    L(T.ResizeShortestEdge)(short_edge_length=image_size, max_size=image_size),
+]
+
+# Initialization and trainer settings
+train = model_zoo.get_config("common/train.py").train
+train.amp.enabled = True
+train.ddp.fp16_compression = True
+
+output_dir = "/srv/home/pmorgado/workspace/mae2cl/checkpoints"
+pretrain_job_name = "path1_maefeat_d3t12_compl[0, 0.25]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3"
+pretrain_ckpt = os.path.join(output_dir,pretrain_job_name,"checkpoints","checkpoint_latest_detectron2.pth")
+train.init_checkpoint = (pretrain_ckpt)
+# train.init_checkpoint = (
+#    "/srv/home/pmorgado/workspace/mae2cl/checkpoints/mae_in100_vitb_bs128x1_ep100_id3/checkpoints/checkpoint_latest_detectron2.pth"# "detectron2://ImageNetPretrained/MAE/mae_pretrain_vit_base.pth?matching_heuristics=True" # 
+# )
+
+# image_size=640
+# 5 images per gpu
+# 40 ep
+# 4 gpus
+
+# Schedule
+# 100 ep = 184375 iters * 64 images/iter / 118000 images/ep
+# 15 ep = 87949 iters * 20 images/iter / 117266 images/ep # Loaded 118287 images. Removed 1021 images with no usable annotations. 117266 images left.
+# 15 ep = 62821 iters * 28 images/iter / 117266 images/ep # Loaded 118287 images. Removed 1021 images with no usable annotations. 117266 images left.
+train.max_iter = 62821
+
+lr_multiplier = L(WarmupParamScheduler)(
+    scheduler=L(MultiStepParamScheduler)(
+        values=[1.0, 0.1, 0.01],
+        milestones=[55840, 60494],#[163889, 177546], #
+        num_updates=train.max_iter,
+    ),
+    warmup_length=250 / train.max_iter,
+    warmup_factor=0.001,
+)
+
+# Optimizer
+optimizer = model_zoo.get_config("common/optim.py").AdamW
+optimizer.lr = 1e-4 # ImageNet 8e-5 | None 1.6e-4 | MAE 1e-4
+optimizer.params.lr_factor_func = partial(get_vit_lr_decay_rate, num_layers=12, lr_decay_rate=0.7)
+optimizer.params.overrides = {"pos_embed": {"weight_decay": 0.0}}
+
+
+train.output_dir = f"/srv/home/pmorgado/workspace/mae2cl/checkpoints/det__{pretrain_job_name}__bs{dataloader.train.total_batch_size}_blr{optimizer.lr}_im{image_size}_debug"
+[02/28 17:31:38 detectron2]: Full config saved to /srv/home/pmorgado/workspace/mae2cl/checkpoints/det__path1_maefeat_d3t12_compl[0, 0.25]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3__bs28_blr0.0001_im480_debug/config.yaml
+[02/28 17:31:38 d2.utils.env]: Using a generated random seed 38979290
+[02/28 17:31:59 detectron2]: Model:
+GeneralizedRCNN(
+  (backbone): SimpleFeaturePyramid(
+    (simfp_2): Sequential(
+      (0): ConvTranspose2d(768, 384, kernel_size=(2, 2), stride=(2, 2))
+      (1): LayerNorm()
+      (2): GELU(approximate='none')
+      (3): ConvTranspose2d(384, 192, kernel_size=(2, 2), stride=(2, 2))
+      (4): Conv2d(
+        192, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (5): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (simfp_3): Sequential(
+      (0): ConvTranspose2d(768, 384, kernel_size=(2, 2), stride=(2, 2))
+      (1): Conv2d(
+        384, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (simfp_4): Sequential(
+      (0): Conv2d(
+        768, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (1): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (simfp_5): Sequential(
+      (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+      (1): Conv2d(
+        768, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (net): ViT(
+      (patch_embed): PatchEmbed(
+        (proj): Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16))
+      )
+      (blocks): ModuleList(
+        (0): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): Identity()
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (1): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.009)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (2): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.018)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (3): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.027)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (4): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.036)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (5): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.045)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (6): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.055)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (7): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.064)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (8): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.073)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (9): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.082)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (10): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.091)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (11): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.100)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+      )
+    )
+    (top_block): LastLevelMaxPool()
+  )
+  (proposal_generator): RPN(
+    (rpn_head): StandardRPNHead(
+      (conv): Sequential(
+        (conv0): Conv2d(
+          256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)
+          (activation): ReLU()
+        )
+        (conv1): Conv2d(
+          256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)
+          (activation): ReLU()
+        )
+      )
+      (objectness_logits): Conv2d(256, 3, kernel_size=(1, 1), stride=(1, 1))
+      (anchor_deltas): Conv2d(256, 12, kernel_size=(1, 1), stride=(1, 1))
+    )
+    (anchor_generator): DefaultAnchorGenerator(
+      (cell_anchors): BufferList()
+    )
+  )
+  (roi_heads): StandardROIHeads(
+    (box_pooler): ROIPooler(
+      (level_poolers): ModuleList(
+        (0): ROIAlign(output_size=(7, 7), spatial_scale=0.25, sampling_ratio=0, aligned=True)
+        (1): ROIAlign(output_size=(7, 7), spatial_scale=0.125, sampling_ratio=0, aligned=True)
+        (2): ROIAlign(output_size=(7, 7), spatial_scale=0.0625, sampling_ratio=0, aligned=True)
+        (3): ROIAlign(output_size=(7, 7), spatial_scale=0.03125, sampling_ratio=0, aligned=True)
+      )
+    )
+    (box_head): FastRCNNConvFCHead(
+      (conv1): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (conv2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (conv3): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (conv4): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (flatten): Flatten(start_dim=1, end_dim=-1)
+      (fc1): Linear(in_features=12544, out_features=1024, bias=True)
+      (fc_relu1): ReLU()
+    )
+    (box_predictor): FastRCNNOutputLayers(
+      (cls_score): Linear(in_features=1024, out_features=81, bias=True)
+      (bbox_pred): Linear(in_features=1024, out_features=320, bias=True)
+    )
+    (mask_pooler): ROIPooler(
+      (level_poolers): ModuleList(
+        (0): ROIAlign(output_size=(14, 14), spatial_scale=0.25, sampling_ratio=0, aligned=True)
+        (1): ROIAlign(output_size=(14, 14), spatial_scale=0.125, sampling_ratio=0, aligned=True)
+        (2): ROIAlign(output_size=(14, 14), spatial_scale=0.0625, sampling_ratio=0, aligned=True)
+        (3): ROIAlign(output_size=(14, 14), spatial_scale=0.03125, sampling_ratio=0, aligned=True)
+      )
+    )
+    (mask_head): MaskRCNNConvUpsampleHead(
+      (mask_fcn1): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (mask_fcn2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (mask_fcn3): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (mask_fcn4): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (deconv): ConvTranspose2d(256, 256, kernel_size=(2, 2), stride=(2, 2))
+      (deconv_relu): ReLU()
+      (predictor): Conv2d(256, 80, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+)
+Traceback (most recent call last):
+  File "tools/lazyconfig_train_net.py", line 131, in <module>
+    args=(args,),
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/launch.py", line 81, in launch
+    daemon=False,
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/multiprocessing/spawn.py", line 198, in start_processes
+    while not context.join():
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/multiprocessing/spawn.py", line 160, in join
+    raise ProcessRaisedException(msg, error_index, failed_process.pid)
+torch.multiprocessing.spawn.ProcessRaisedException: 
+
+-- Process 1 terminated with the following error:
+Traceback (most recent call last):
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/multiprocessing/spawn.py", line 69, in _wrap
+    fn(i, *args)
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/launch.py", line 123, in _distributed_worker
+    main_func(*args)
+  File "/srv/home/pmorgado/yibing/detectron2/tools/lazyconfig_train_net.py", line 120, in main
+    do_train(args, cfg)
+  File "/srv/home/pmorgado/yibing/detectron2/tools/lazyconfig_train_net.py", line 71, in do_train
+    train_loader = instantiate(cfg.dataloader.train)
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/config/instantiate.py", line 67, in instantiate
+    cfg = {k: instantiate(v) for k, v in cfg.items()}
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/config/instantiate.py", line 67, in <dictcomp>
+    cfg = {k: instantiate(v) for k, v in cfg.items()}
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/config/instantiate.py", line 83, in instantiate
+    return cls(**cfg)
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/data/build.py", line 241, in get_detection_dataset_dicts
+    dataset_dicts = [DatasetCatalog.get(dataset_name) for dataset_name in names]
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/data/build.py", line 241, in <listcomp>
+    dataset_dicts = [DatasetCatalog.get(dataset_name) for dataset_name in names]
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/data/catalog.py", line 58, in get
+    return f()
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/data/datasets/coco.py", line 500, in <lambda>
+    DatasetCatalog.register(name, lambda: load_coco_json(json_file, image_root, name))
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/data/datasets/coco.py", line 69, in load_coco_json
+    coco_api = COCO(json_file)
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/pycocotools/coco.py", line 81, in __init__
+    with open(annotation_file, 'r') as f:
+FileNotFoundError: [Errno 2] No such file or directory: 'datasets/coco/annotations/instances_train2017.json'
+
+srun: error: euler22: task 0: Exited with exit code 1
+srun: job 316598 queued and waiting for resources
+srun: job 316598 has been allocated resources
+[02/28 17:38:06 detectron2]: Rank of current process: 0. World size: 4
+[02/28 17:38:09 detectron2]: Environment info:
+----------------------  ---------------------------------------------------------------------------------------
+sys.platform            linux
+Python                  3.7.16 (default, Jan 17 2023, 22:20:44) [GCC 11.2.0]
+numpy                   1.21.5
+detectron2              0.6 @/srv/home/pmorgado/yibing/detectron2/detectron2
+Compiler                GCC 12.2
+CUDA compiler           not available
+DETECTRON2_ENV_MODULE   <not set>
+PyTorch                 1.13.1 @/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch
+PyTorch debug build     False
+GPU available           Yes
+GPU 0,1,2,3             NVIDIA RTX A4500 (arch=8.6)
+Driver version          525.78.01
+CUDA_HOME               /srv/home/pmorgado/anaconda3/envs/pt113
+Pillow                  9.3.0
+torchvision             0.14.1 @/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torchvision
+torchvision arch flags  3.5, 5.0, 6.0, 7.0, 7.5, 8.0, 8.6
+fvcore                  0.1.5.post20221221
+iopath                  0.1.9
+cv2                     Not found
+----------------------  ---------------------------------------------------------------------------------------
+PyTorch built with:
+  - GCC 9.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.4-Product Build 20210904 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.6.0 (Git Hash 52b5f107dd9cf10910aaa19cb47f3abf9b349815)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.7
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_37,code=compute_37
+  - CuDNN 8.5
+  - Magma 2.6.1
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.7, CUDNN_VERSION=8.5.0, CXX_COMPILER=/opt/rh/devtoolset-9/root/usr/bin/c++, CXX_FLAGS= -fabi-version=11 -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Werror=non-virtual-dtor -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wunused-local-typedefs -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Werror=cast-function-type -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.13.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+[02/28 17:38:09 detectron2]: Command line arguments: Namespace(config_file='/srv/home/pmorgado/yibing/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_100ep.py', dist_url='tcp://127.0.0.1:57709', eval_only=False, machine_rank=0, num_gpus=4, num_machines=1, opts=[], resume=False)
+[02/28 17:38:09 detectron2]: Contents of args.config_file=/srv/home/pmorgado/yibing/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_100ep.py:
+from functools import partial
+from fvcore.common.param_scheduler import MultiStepParamScheduler
+
+from detectron2 import model_zoo
+from detectron2.config import LazyCall as L
+from detectron2.solver import WarmupParamScheduler
+from detectron2.modeling.backbone.vit import get_vit_lr_decay_rate
+
+import detectron2.data.transforms as T
+
+# from ..common.coco_loader_lsj import dataloader
+
+import os
+
+model = model_zoo.get_config("common/models/mask_rcnn_vitdet.py").model #configs/common/models/mask_rcnn_vitdet.py
+image_size = 480
+model.backbone.net.img_size = image_size
+model.backbone.square_pad = image_size
+
+dataloader = model_zoo.get_config("common/data/coco.py").dataloader
+dataloader.train.total_batch_size = 28 #5(640) /7(512) image per gpu #4 gpu
+dataloader.train.mapper.augmentations = [
+    L(T.RandomFlip)(horizontal=True),  # flip first
+    L(T.ResizeScale)(
+        min_scale=0.1, max_scale=2.0, target_height=image_size, target_width=image_size
+    ),
+    L(T.FixedSizeCrop)(crop_size=(image_size, image_size), pad=False),
+]
+dataloader.train.mapper.image_format = "RGB"
+# recompute boxes due to cropping
+dataloader.train.mapper.recompute_boxes = True
+
+dataloader.test.mapper.augmentations = [
+    L(T.ResizeShortestEdge)(short_edge_length=image_size, max_size=image_size),
+]
+
+# Initialization and trainer settings
+train = model_zoo.get_config("common/train.py").train
+train.amp.enabled = True
+train.ddp.fp16_compression = True
+
+output_dir = "/srv/home/pmorgado/workspace/mae2cl/checkpoints"
+pretrain_job_name = "path1_maefeat_d3t12_compl[0, 0.25]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3"
+pretrain_ckpt = os.path.join(output_dir,pretrain_job_name,"checkpoints","checkpoint_latest_detectron2.pth")
+train.init_checkpoint = (pretrain_ckpt)
+# train.init_checkpoint = (
+#    "/srv/home/pmorgado/workspace/mae2cl/checkpoints/mae_in100_vitb_bs128x1_ep100_id3/checkpoints/checkpoint_latest_detectron2.pth"# "detectron2://ImageNetPretrained/MAE/mae_pretrain_vit_base.pth?matching_heuristics=True" # 
+# )
+
+# image_size=640
+# 5 images per gpu
+# 40 ep
+# 4 gpus
+
+# Schedule
+# 100 ep = 184375 iters * 64 images/iter / 118000 images/ep
+# 15 ep = 87949 iters * 20 images/iter / 117266 images/ep # Loaded 118287 images. Removed 1021 images with no usable annotations. 117266 images left.
+# 15 ep = 62821 iters * 28 images/iter / 117266 images/ep # Loaded 118287 images. Removed 1021 images with no usable annotations. 117266 images left.
+train.max_iter = 62821
+
+lr_multiplier = L(WarmupParamScheduler)(
+    scheduler=L(MultiStepParamScheduler)(
+        values=[1.0, 0.1, 0.01],
+        milestones=[55840, 60494],#[163889, 177546], #
+        num_updates=train.max_iter,
+    ),
+    warmup_length=250 / train.max_iter,
+    warmup_factor=0.001,
+)
+
+# Optimizer
+optimizer = model_zoo.get_config("common/optim.py").AdamW
+optimizer.lr = 1e-4 # ImageNet 8e-5 | None 1.6e-4 | MAE 1e-4
+optimizer.params.lr_factor_func = partial(get_vit_lr_decay_rate, num_layers=12, lr_decay_rate=0.7)
+optimizer.params.overrides = {"pos_embed": {"weight_decay": 0.0}}
+
+
+train.output_dir = f"/srv/home/pmorgado/workspace/mae2cl/checkpoints/det__{pretrain_job_name}__bs{dataloader.train.total_batch_size}_blr{optimizer.lr}_im{image_size}_debug"
+[02/28 17:38:09 detectron2]: Full config saved to /srv/home/pmorgado/workspace/mae2cl/checkpoints/det__path1_maefeat_d3t12_compl[0, 0.25]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3__bs28_blr0.0001_im480_debug/config.yaml
+[02/28 17:38:09 d2.utils.env]: Using a generated random seed 9790943
+[02/28 17:38:14 detectron2]: Model:
+GeneralizedRCNN(
+  (backbone): SimpleFeaturePyramid(
+    (simfp_2): Sequential(
+      (0): ConvTranspose2d(768, 384, kernel_size=(2, 2), stride=(2, 2))
+      (1): LayerNorm()
+      (2): GELU(approximate='none')
+      (3): ConvTranspose2d(384, 192, kernel_size=(2, 2), stride=(2, 2))
+      (4): Conv2d(
+        192, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (5): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (simfp_3): Sequential(
+      (0): ConvTranspose2d(768, 384, kernel_size=(2, 2), stride=(2, 2))
+      (1): Conv2d(
+        384, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (simfp_4): Sequential(
+      (0): Conv2d(
+        768, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (1): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (simfp_5): Sequential(
+      (0): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+      (1): Conv2d(
+        768, 256, kernel_size=(1, 1), stride=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+      (2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+      )
+    )
+    (net): ViT(
+      (patch_embed): PatchEmbed(
+        (proj): Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16))
+      )
+      (blocks): ModuleList(
+        (0): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): Identity()
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (1): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.009)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (2): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.018)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (3): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.027)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (4): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.036)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (5): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.045)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (6): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.055)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (7): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.064)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (8): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.073)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (9): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.082)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (10): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.091)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+        (11): Block(
+          (norm1): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (attn): Attention(
+            (qkv): Linear(in_features=768, out_features=2304, bias=True)
+            (proj): Linear(in_features=768, out_features=768, bias=True)
+          )
+          (drop_path): DropPath(drop_prob=0.100)
+          (norm2): LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+          (mlp): Mlp(
+            (fc1): Linear(in_features=768, out_features=3072, bias=True)
+            (act): GELU(approximate='none')
+            (drop1): Dropout(p=0.0, inplace=False)
+            (fc2): Linear(in_features=3072, out_features=768, bias=True)
+            (drop2): Dropout(p=0.0, inplace=False)
+          )
+        )
+      )
+    )
+    (top_block): LastLevelMaxPool()
+  )
+  (proposal_generator): RPN(
+    (rpn_head): StandardRPNHead(
+      (conv): Sequential(
+        (conv0): Conv2d(
+          256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)
+          (activation): ReLU()
+        )
+        (conv1): Conv2d(
+          256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)
+          (activation): ReLU()
+        )
+      )
+      (objectness_logits): Conv2d(256, 3, kernel_size=(1, 1), stride=(1, 1))
+      (anchor_deltas): Conv2d(256, 12, kernel_size=(1, 1), stride=(1, 1))
+    )
+    (anchor_generator): DefaultAnchorGenerator(
+      (cell_anchors): BufferList()
+    )
+  )
+  (roi_heads): StandardROIHeads(
+    (box_pooler): ROIPooler(
+      (level_poolers): ModuleList(
+        (0): ROIAlign(output_size=(7, 7), spatial_scale=0.25, sampling_ratio=0, aligned=True)
+        (1): ROIAlign(output_size=(7, 7), spatial_scale=0.125, sampling_ratio=0, aligned=True)
+        (2): ROIAlign(output_size=(7, 7), spatial_scale=0.0625, sampling_ratio=0, aligned=True)
+        (3): ROIAlign(output_size=(7, 7), spatial_scale=0.03125, sampling_ratio=0, aligned=True)
+      )
+    )
+    (box_head): FastRCNNConvFCHead(
+      (conv1): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (conv2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (conv3): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (conv4): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (flatten): Flatten(start_dim=1, end_dim=-1)
+      (fc1): Linear(in_features=12544, out_features=1024, bias=True)
+      (fc_relu1): ReLU()
+    )
+    (box_predictor): FastRCNNOutputLayers(
+      (cls_score): Linear(in_features=1024, out_features=81, bias=True)
+      (bbox_pred): Linear(in_features=1024, out_features=320, bias=True)
+    )
+    (mask_pooler): ROIPooler(
+      (level_poolers): ModuleList(
+        (0): ROIAlign(output_size=(14, 14), spatial_scale=0.25, sampling_ratio=0, aligned=True)
+        (1): ROIAlign(output_size=(14, 14), spatial_scale=0.125, sampling_ratio=0, aligned=True)
+        (2): ROIAlign(output_size=(14, 14), spatial_scale=0.0625, sampling_ratio=0, aligned=True)
+        (3): ROIAlign(output_size=(14, 14), spatial_scale=0.03125, sampling_ratio=0, aligned=True)
+      )
+    )
+    (mask_head): MaskRCNNConvUpsampleHead(
+      (mask_fcn1): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (mask_fcn2): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (mask_fcn3): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (mask_fcn4): Conv2d(
+        256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False
+        (norm): LayerNorm()
+        (activation): ReLU()
+      )
+      (deconv): ConvTranspose2d(256, 256, kernel_size=(2, 2), stride=(2, 2))
+      (deconv_relu): ReLU()
+      (predictor): Conv2d(256, 80, kernel_size=(1, 1), stride=(1, 1))
+    )
+  )
+)
+[02/28 17:38:27 d2.data.datasets.coco]: Loading /srv/home/pmorgado/datasets/coco/annotations/instances_train2017.json takes 12.38 seconds.
+[02/28 17:38:27 d2.data.datasets.coco]: Loaded 118287 images in COCO format from /srv/home/pmorgado/datasets/coco/annotations/instances_train2017.json
+[02/28 17:38:33 d2.data.build]: Removed 1021 images with no usable annotations. 117266 images left.
+[02/28 17:38:36 d2.data.build]: Distribution of instances among all 80 categories:
+|   category    | #instances   |   category   | #instances   |   category    | #instances   |
+|:-------------:|:-------------|:------------:|:-------------|:-------------:|:-------------|
+|    person     | 257253       |   bicycle    | 7056         |      car      | 43533        |
+|  motorcycle   | 8654         |   airplane   | 5129         |      bus      | 6061         |
+|     train     | 4570         |    truck     | 9970         |     boat      | 10576        |
+| traffic light | 12842        | fire hydrant | 1865         |   stop sign   | 1983         |
+| parking meter | 1283         |    bench     | 9820         |     bird      | 10542        |
+|      cat      | 4766         |     dog      | 5500         |     horse     | 6567         |
+|     sheep     | 9223         |     cow      | 8014         |   elephant    | 5484         |
+|     bear      | 1294         |    zebra     | 5269         |    giraffe    | 5128         |
+|   backpack    | 8714         |   umbrella   | 11265        |    handbag    | 12342        |
+|      tie      | 6448         |   suitcase   | 6112         |    frisbee    | 2681         |
+|     skis      | 6623         |  snowboard   | 2681         |  sports ball  | 6299         |
+|     kite      | 8802         | baseball bat | 3273         | baseball gl.. | 3747         |
+|  skateboard   | 5536         |  surfboard   | 6095         | tennis racket | 4807         |
+|    bottle     | 24070        |  wine glass  | 7839         |      cup      | 20574        |
+|     fork      | 5474         |    knife     | 7760         |     spoon     | 6159         |
+|     bowl      | 14323        |    banana    | 9195         |     apple     | 5776         |
+|   sandwich    | 4356         |    orange    | 6302         |   broccoli    | 7261         |
+|    carrot     | 7758         |   hot dog    | 2884         |     pizza     | 5807         |
+|     donut     | 7005         |     cake     | 6296         |     chair     | 38073        |
+|     couch     | 5779         | potted plant | 8631         |      bed      | 4192         |
+| dining table  | 15695        |    toilet    | 4149         |      tv       | 5803         |
+|    laptop     | 4960         |    mouse     | 2261         |    remote     | 5700         |
+|   keyboard    | 2854         |  cell phone  | 6422         |   microwave   | 1672         |
+|     oven      | 3334         |   toaster    | 225          |     sink      | 5609         |
+| refrigerator  | 2634         |     book     | 24077        |     clock     | 6320         |
+|     vase      | 6577         |   scissors   | 1464         |  teddy bear   | 4729         |
+|  hair drier   | 198          |  toothbrush  | 1945         |               |              |
+|     total     | 849949       |              |              |               |              |
+[02/28 17:38:37 d2.data.dataset_mapper]: [DatasetMapper] Augmentations used in training: [RandomFlip(), ResizeScale(min_scale=0.1, max_scale=2.0, target_height=480, target_width=480), FixedSizeCrop(crop_size=[480, 480], pad=False)]
+[02/28 17:38:37 d2.data.common]: Serializing the dataset using: <class 'detectron2.data.common._TorchSerializedList'>
+[02/28 17:38:37 d2.data.common]: Serializing 117266 elements to byte tensors and concatenating them all ...
+[02/28 17:38:39 d2.data.common]: Serialized dataset takes 453.34 MiB
+checkpoint.get("matching_heuristics", False) False
+checkpoint_state_dict ['cls_token', 'pos_embed', 'mask_token', 'decoder_pos_embed', 'patch_embed.proj.weight', 'patch_embed.proj.bias', 'blocks.0.norm1.weight', 'blocks.0.norm1.bias', 'blocks.0.attn.qkv.weight', 'blocks.0.attn.qkv.bias', 'blocks.0.attn.proj.weight', 'blocks.0.attn.proj.bias', 'blocks.0.norm2.weight', 'blocks.0.norm2.bias', 'blocks.0.mlp.fc1.weight', 'blocks.0.mlp.fc1.bias', 'blocks.0.mlp.fc2.weight', 'blocks.0.mlp.fc2.bias', 'blocks.1.norm1.weight', 'blocks.1.norm1.bias', 'blocks.1.attn.qkv.weight', 'blocks.1.attn.qkv.bias', 'blocks.1.attn.proj.weight', 'blocks.1.attn.proj.bias', 'blocks.1.norm2.weight', 'blocks.1.norm2.bias', 'blocks.1.mlp.fc1.weight', 'blocks.1.mlp.fc1.bias', 'blocks.1.mlp.fc2.weight', 'blocks.1.mlp.fc2.bias', 'blocks.2.norm1.weight', 'blocks.2.norm1.bias', 'blocks.2.attn.qkv.weight', 'blocks.2.attn.qkv.bias', 'blocks.2.attn.proj.weight', 'blocks.2.attn.proj.bias', 'blocks.2.norm2.weight', 'blocks.2.norm2.bias', 'blocks.2.mlp.fc1.weight', 'blocks.2.mlp.fc1.bias', 'blocks.2.mlp.fc2.weight', 'blocks.2.mlp.fc2.bias', 'blocks.3.norm1.weight', 'blocks.3.norm1.bias', 'blocks.3.attn.qkv.weight', 'blocks.3.attn.qkv.bias', 'blocks.3.attn.proj.weight', 'blocks.3.attn.proj.bias', 'blocks.3.norm2.weight', 'blocks.3.norm2.bias', 'blocks.3.mlp.fc1.weight', 'blocks.3.mlp.fc1.bias', 'blocks.3.mlp.fc2.weight', 'blocks.3.mlp.fc2.bias', 'blocks.4.norm1.weight', 'blocks.4.norm1.bias', 'blocks.4.attn.qkv.weight', 'blocks.4.attn.qkv.bias', 'blocks.4.attn.proj.weight', 'blocks.4.attn.proj.bias', 'blocks.4.norm2.weight', 'blocks.4.norm2.bias', 'blocks.4.mlp.fc1.weight', 'blocks.4.mlp.fc1.bias', 'blocks.4.mlp.fc2.weight', 'blocks.4.mlp.fc2.bias', 'blocks.5.norm1.weight', 'blocks.5.norm1.bias', 'blocks.5.attn.qkv.weight', 'blocks.5.attn.qkv.bias', 'blocks.5.attn.proj.weight', 'blocks.5.attn.proj.bias', 'blocks.5.norm2.weight', 'blocks.5.norm2.bias', 'blocks.5.mlp.fc1.weight', 'blocks.5.mlp.fc1.bias', 'blocks.5.mlp.fc2.weight', 'blocks.5.mlp.fc2.bias', 'blocks.6.norm1.weight', 'blocks.6.norm1.bias', 'blocks.6.attn.qkv.weight', 'blocks.6.attn.qkv.bias', 'blocks.6.attn.proj.weight', 'blocks.6.attn.proj.bias', 'blocks.6.norm2.weight', 'blocks.6.norm2.bias', 'blocks.6.mlp.fc1.weight', 'blocks.6.mlp.fc1.bias', 'blocks.6.mlp.fc2.weight', 'blocks.6.mlp.fc2.bias', 'blocks.7.norm1.weight', 'blocks.7.norm1.bias', 'blocks.7.attn.qkv.weight', 'blocks.7.attn.qkv.bias', 'blocks.7.attn.proj.weight', 'blocks.7.attn.proj.bias', 'blocks.7.norm2.weight', 'blocks.7.norm2.bias', 'blocks.7.mlp.fc1.weight', 'blocks.7.mlp.fc1.bias', 'blocks.7.mlp.fc2.weight', 'blocks.7.mlp.fc2.bias', 'blocks.8.norm1.weight', 'blocks.8.norm1.bias', 'blocks.8.attn.qkv.weight', 'blocks.8.attn.qkv.bias', 'blocks.8.attn.proj.weight', 'blocks.8.attn.proj.bias', 'blocks.8.norm2.weight', 'blocks.8.norm2.bias', 'blocks.8.mlp.fc1.weight', 'blocks.8.mlp.fc1.bias', 'blocks.8.mlp.fc2.weight', 'blocks.8.mlp.fc2.bias', 'blocks.9.norm1.weight', 'blocks.9.norm1.bias', 'blocks.9.attn.qkv.weight', 'blocks.9.attn.qkv.bias', 'blocks.9.attn.proj.weight', 'blocks.9.attn.proj.bias', 'blocks.9.norm2.weight', 'blocks.9.norm2.bias', 'blocks.9.mlp.fc1.weight', 'blocks.9.mlp.fc1.bias', 'blocks.9.mlp.fc2.weight', 'blocks.9.mlp.fc2.bias', 'blocks.10.norm1.weight', 'blocks.10.norm1.bias', 'blocks.10.attn.qkv.weight', 'blocks.10.attn.qkv.bias', 'blocks.10.attn.proj.weight', 'blocks.10.attn.proj.bias', 'blocks.10.norm2.weight', 'blocks.10.norm2.bias', 'blocks.10.mlp.fc1.weight', 'blocks.10.mlp.fc1.bias', 'blocks.10.mlp.fc2.weight', 'blocks.10.mlp.fc2.bias', 'blocks.11.norm1.weight', 'blocks.11.norm1.bias', 'blocks.11.attn.qkv.weight', 'blocks.11.attn.qkv.bias', 'blocks.11.attn.proj.weight', 'blocks.11.attn.proj.bias', 'blocks.11.norm2.weight', 'blocks.11.norm2.bias', 'blocks.11.mlp.fc1.weight', 'blocks.11.mlp.fc1.bias', 'blocks.11.mlp.fc2.weight', 'blocks.11.mlp.fc2.bias', 'norm.weight', 'norm.bias', 'decoder_embed.weight', 'decoder_embed.bias', 'decoder_blocks.0.norm1.weight', 'decoder_blocks.0.norm1.bias', 'decoder_blocks.0.attn.qkv.weight', 'decoder_blocks.0.attn.qkv.bias', 'decoder_blocks.0.attn.proj.weight', 'decoder_blocks.0.attn.proj.bias', 'decoder_blocks.0.norm2.weight', 'decoder_blocks.0.norm2.bias', 'decoder_blocks.0.mlp.fc1.weight', 'decoder_blocks.0.mlp.fc1.bias', 'decoder_blocks.0.mlp.fc2.weight', 'decoder_blocks.0.mlp.fc2.bias', 'decoder_blocks.1.norm1.weight', 'decoder_blocks.1.norm1.bias', 'decoder_blocks.1.attn.qkv.weight', 'decoder_blocks.1.attn.qkv.bias', 'decoder_blocks.1.attn.proj.weight', 'decoder_blocks.1.attn.proj.bias', 'decoder_blocks.1.norm2.weight', 'decoder_blocks.1.norm2.bias', 'decoder_blocks.1.mlp.fc1.weight', 'decoder_blocks.1.mlp.fc1.bias', 'decoder_blocks.1.mlp.fc2.weight', 'decoder_blocks.1.mlp.fc2.bias', 'decoder_blocks.2.norm1.weight', 'decoder_blocks.2.norm1.bias', 'decoder_blocks.2.attn.qkv.weight', 'decoder_blocks.2.attn.qkv.bias', 'decoder_blocks.2.attn.proj.weight', 'decoder_blocks.2.attn.proj.bias', 'decoder_blocks.2.norm2.weight', 'decoder_blocks.2.norm2.bias', 'decoder_blocks.2.mlp.fc1.weight', 'decoder_blocks.2.mlp.fc1.bias', 'decoder_blocks.2.mlp.fc2.weight', 'decoder_blocks.2.mlp.fc2.bias', 'decoder_blocks.3.norm1.weight', 'decoder_blocks.3.norm1.bias', 'decoder_blocks.3.attn.qkv.weight', 'decoder_blocks.3.attn.qkv.bias', 'decoder_blocks.3.attn.proj.weight', 'decoder_blocks.3.attn.proj.bias', 'decoder_blocks.3.norm2.weight', 'decoder_blocks.3.norm2.bias', 'decoder_blocks.3.mlp.fc1.weight', 'decoder_blocks.3.mlp.fc1.bias', 'decoder_blocks.3.mlp.fc2.weight', 'decoder_blocks.3.mlp.fc2.bias', 'decoder_blocks.4.norm1.weight', 'decoder_blocks.4.norm1.bias', 'decoder_blocks.4.attn.qkv.weight', 'decoder_blocks.4.attn.qkv.bias', 'decoder_blocks.4.attn.proj.weight', 'decoder_blocks.4.attn.proj.bias', 'decoder_blocks.4.norm2.weight', 'decoder_blocks.4.norm2.bias', 'decoder_blocks.4.mlp.fc1.weight', 'decoder_blocks.4.mlp.fc1.bias', 'decoder_blocks.4.mlp.fc2.weight', 'decoder_blocks.4.mlp.fc2.bias', 'decoder_blocks.5.norm1.weight', 'decoder_blocks.5.norm1.bias', 'decoder_blocks.5.attn.qkv.weight', 'decoder_blocks.5.attn.qkv.bias', 'decoder_blocks.5.attn.proj.weight', 'decoder_blocks.5.attn.proj.bias', 'decoder_blocks.5.norm2.weight', 'decoder_blocks.5.norm2.bias', 'decoder_blocks.5.mlp.fc1.weight', 'decoder_blocks.5.mlp.fc1.bias', 'decoder_blocks.5.mlp.fc2.weight', 'decoder_blocks.5.mlp.fc2.bias', 'decoder_blocks.6.norm1.weight', 'decoder_blocks.6.norm1.bias', 'decoder_blocks.6.attn.qkv.weight', 'decoder_blocks.6.attn.qkv.bias', 'decoder_blocks.6.attn.proj.weight', 'decoder_blocks.6.attn.proj.bias', 'decoder_blocks.6.norm2.weight', 'decoder_blocks.6.norm2.bias', 'decoder_blocks.6.mlp.fc1.weight', 'decoder_blocks.6.mlp.fc1.bias', 'decoder_blocks.6.mlp.fc2.weight', 'decoder_blocks.6.mlp.fc2.bias', 'decoder_blocks.7.norm1.weight', 'decoder_blocks.7.norm1.bias', 'decoder_blocks.7.attn.qkv.weight', 'decoder_blocks.7.attn.qkv.bias', 'decoder_blocks.7.attn.proj.weight', 'decoder_blocks.7.attn.proj.bias', 'decoder_blocks.7.norm2.weight', 'decoder_blocks.7.norm2.bias', 'decoder_blocks.7.mlp.fc1.weight', 'decoder_blocks.7.mlp.fc1.bias', 'decoder_blocks.7.mlp.fc2.weight', 'decoder_blocks.7.mlp.fc2.bias', 'decoder_norm.weight', 'decoder_norm.bias', 'decoder_pred.weight', 'decoder_pred.bias']
+after checkpoint_state_dict ['backbone.net.cls_token', 'backbone.net.pos_embed', 'backbone.net.mask_token', 'backbone.net.patch_embed.proj.weight', 'backbone.net.patch_embed.proj.bias', 'backbone.net.blocks.0.norm1.weight', 'backbone.net.blocks.0.norm1.bias', 'backbone.net.blocks.0.attn.qkv.weight', 'backbone.net.blocks.0.attn.qkv.bias', 'backbone.net.blocks.0.attn.proj.weight', 'backbone.net.blocks.0.attn.proj.bias', 'backbone.net.blocks.0.norm2.weight', 'backbone.net.blocks.0.norm2.bias', 'backbone.net.blocks.0.mlp.fc1.weight', 'backbone.net.blocks.0.mlp.fc1.bias', 'backbone.net.blocks.0.mlp.fc2.weight', 'backbone.net.blocks.0.mlp.fc2.bias', 'backbone.net.blocks.1.norm1.weight', 'backbone.net.blocks.1.norm1.bias', 'backbone.net.blocks.1.attn.qkv.weight', 'backbone.net.blocks.1.attn.qkv.bias', 'backbone.net.blocks.1.attn.proj.weight', 'backbone.net.blocks.1.attn.proj.bias', 'backbone.net.blocks.1.norm2.weight', 'backbone.net.blocks.1.norm2.bias', 'backbone.net.blocks.1.mlp.fc1.weight', 'backbone.net.blocks.1.mlp.fc1.bias', 'backbone.net.blocks.1.mlp.fc2.weight', 'backbone.net.blocks.1.mlp.fc2.bias', 'backbone.net.blocks.2.norm1.weight', 'backbone.net.blocks.2.norm1.bias', 'backbone.net.blocks.2.attn.qkv.weight', 'backbone.net.blocks.2.attn.qkv.bias', 'backbone.net.blocks.2.attn.proj.weight', 'backbone.net.blocks.2.attn.proj.bias', 'backbone.net.blocks.2.norm2.weight', 'backbone.net.blocks.2.norm2.bias', 'backbone.net.blocks.2.mlp.fc1.weight', 'backbone.net.blocks.2.mlp.fc1.bias', 'backbone.net.blocks.2.mlp.fc2.weight', 'backbone.net.blocks.2.mlp.fc2.bias', 'backbone.net.blocks.3.norm1.weight', 'backbone.net.blocks.3.norm1.bias', 'backbone.net.blocks.3.attn.qkv.weight', 'backbone.net.blocks.3.attn.qkv.bias', 'backbone.net.blocks.3.attn.proj.weight', 'backbone.net.blocks.3.attn.proj.bias', 'backbone.net.blocks.3.norm2.weight', 'backbone.net.blocks.3.norm2.bias', 'backbone.net.blocks.3.mlp.fc1.weight', 'backbone.net.blocks.3.mlp.fc1.bias', 'backbone.net.blocks.3.mlp.fc2.weight', 'backbone.net.blocks.3.mlp.fc2.bias', 'backbone.net.blocks.4.norm1.weight', 'backbone.net.blocks.4.norm1.bias', 'backbone.net.blocks.4.attn.qkv.weight', 'backbone.net.blocks.4.attn.qkv.bias', 'backbone.net.blocks.4.attn.proj.weight', 'backbone.net.blocks.4.attn.proj.bias', 'backbone.net.blocks.4.norm2.weight', 'backbone.net.blocks.4.norm2.bias', 'backbone.net.blocks.4.mlp.fc1.weight', 'backbone.net.blocks.4.mlp.fc1.bias', 'backbone.net.blocks.4.mlp.fc2.weight', 'backbone.net.blocks.4.mlp.fc2.bias', 'backbone.net.blocks.5.norm1.weight', 'backbone.net.blocks.5.norm1.bias', 'backbone.net.blocks.5.attn.qkv.weight', 'backbone.net.blocks.5.attn.qkv.bias', 'backbone.net.blocks.5.attn.proj.weight', 'backbone.net.blocks.5.attn.proj.bias', 'backbone.net.blocks.5.norm2.weight', 'backbone.net.blocks.5.norm2.bias', 'backbone.net.blocks.5.mlp.fc1.weight', 'backbone.net.blocks.5.mlp.fc1.bias', 'backbone.net.blocks.5.mlp.fc2.weight', 'backbone.net.blocks.5.mlp.fc2.bias', 'backbone.net.blocks.6.norm1.weight', 'backbone.net.blocks.6.norm1.bias', 'backbone.net.blocks.6.attn.qkv.weight', 'backbone.net.blocks.6.attn.qkv.bias', 'backbone.net.blocks.6.attn.proj.weight', 'backbone.net.blocks.6.attn.proj.bias', 'backbone.net.blocks.6.norm2.weight', 'backbone.net.blocks.6.norm2.bias', 'backbone.net.blocks.6.mlp.fc1.weight', 'backbone.net.blocks.6.mlp.fc1.bias', 'backbone.net.blocks.6.mlp.fc2.weight', 'backbone.net.blocks.6.mlp.fc2.bias', 'backbone.net.blocks.7.norm1.weight', 'backbone.net.blocks.7.norm1.bias', 'backbone.net.blocks.7.attn.qkv.weight', 'backbone.net.blocks.7.attn.qkv.bias', 'backbone.net.blocks.7.attn.proj.weight', 'backbone.net.blocks.7.attn.proj.bias', 'backbone.net.blocks.7.norm2.weight', 'backbone.net.blocks.7.norm2.bias', 'backbone.net.blocks.7.mlp.fc1.weight', 'backbone.net.blocks.7.mlp.fc1.bias', 'backbone.net.blocks.7.mlp.fc2.weight', 'backbone.net.blocks.7.mlp.fc2.bias', 'backbone.net.blocks.8.norm1.weight', 'backbone.net.blocks.8.norm1.bias', 'backbone.net.blocks.8.attn.qkv.weight', 'backbone.net.blocks.8.attn.qkv.bias', 'backbone.net.blocks.8.attn.proj.weight', 'backbone.net.blocks.8.attn.proj.bias', 'backbone.net.blocks.8.norm2.weight', 'backbone.net.blocks.8.norm2.bias', 'backbone.net.blocks.8.mlp.fc1.weight', 'backbone.net.blocks.8.mlp.fc1.bias', 'backbone.net.blocks.8.mlp.fc2.weight', 'backbone.net.blocks.8.mlp.fc2.bias', 'backbone.net.blocks.9.norm1.weight', 'backbone.net.blocks.9.norm1.bias', 'backbone.net.blocks.9.attn.qkv.weight', 'backbone.net.blocks.9.attn.qkv.bias', 'backbone.net.blocks.9.attn.proj.weight', 'backbone.net.blocks.9.attn.proj.bias', 'backbone.net.blocks.9.norm2.weight', 'backbone.net.blocks.9.norm2.bias', 'backbone.net.blocks.9.mlp.fc1.weight', 'backbone.net.blocks.9.mlp.fc1.bias', 'backbone.net.blocks.9.mlp.fc2.weight', 'backbone.net.blocks.9.mlp.fc2.bias', 'backbone.net.blocks.10.norm1.weight', 'backbone.net.blocks.10.norm1.bias', 'backbone.net.blocks.10.attn.qkv.weight', 'backbone.net.blocks.10.attn.qkv.bias', 'backbone.net.blocks.10.attn.proj.weight', 'backbone.net.blocks.10.attn.proj.bias', 'backbone.net.blocks.10.norm2.weight', 'backbone.net.blocks.10.norm2.bias', 'backbone.net.blocks.10.mlp.fc1.weight', 'backbone.net.blocks.10.mlp.fc1.bias', 'backbone.net.blocks.10.mlp.fc2.weight', 'backbone.net.blocks.10.mlp.fc2.bias', 'backbone.net.blocks.11.norm1.weight', 'backbone.net.blocks.11.norm1.bias', 'backbone.net.blocks.11.attn.qkv.weight', 'backbone.net.blocks.11.attn.qkv.bias', 'backbone.net.blocks.11.attn.proj.weight', 'backbone.net.blocks.11.attn.proj.bias', 'backbone.net.blocks.11.norm2.weight', 'backbone.net.blocks.11.norm2.bias', 'backbone.net.blocks.11.mlp.fc1.weight', 'backbone.net.blocks.11.mlp.fc1.bias', 'backbone.net.blocks.11.mlp.fc2.weight', 'backbone.net.blocks.11.mlp.fc2.bias', 'backbone.net.norm.weight', 'backbone.net.norm.bias']checkpoint.get("matching_heuristics", False) False
+checkpoint_state_dict ['cls_token', 'pos_embed', 'mask_token', 'decoder_pos_embed', 'patch_embed.proj.weight', 'patch_embed.proj.bias', 'blocks.0.norm1.weight', 'blocks.0.norm1.bias', 'blocks.0.attn.qkv.weight', 'blocks.0.attn.qkv.bias', 'blocks.0.attn.proj.weight', 'blocks.0.attn.proj.bias', 'blocks.0.norm2.weight', 'blocks.0.norm2.bias', 'blocks.0.mlp.fc1.weight', 'blocks.0.mlp.fc1.bias', 'blocks.0.mlp.fc2.weight', 'blocks.0.mlp.fc2.bias', 'blocks.1.norm1.weight', 'blocks.1.norm1.bias', 'blocks.1.attn.qkv.weight', 'blocks.1.attn.qkv.bias', 'blocks.1.attn.proj.weight', 'blocks.1.attn.proj.bias', 'blocks.1.norm2.weight', 'blocks.1.norm2.bias', 'blocks.1.mlp.fc1.weight', 'blocks.1.mlp.fc1.bias', 'blocks.1.mlp.fc2.weight', 'blocks.1.mlp.fc2.bias', 'blocks.2.norm1.weight', 'blocks.2.norm1.bias', 'blocks.2.attn.qkv.weight', 'blocks.2.attn.qkv.bias', 'blocks.2.attn.proj.weight', 'blocks.2.attn.proj.bias', 'blocks.2.norm2.weight', 'blocks.2.norm2.bias', 'blocks.2.mlp.fc1.weight', 'blocks.2.mlp.fc1.bias', 'blocks.2.mlp.fc2.weight', 'blocks.2.mlp.fc2.bias', 'blocks.3.norm1.weight', 'blocks.3.norm1.bias', 'blocks.3.attn.qkv.weight', 'blocks.3.attn.qkv.bias', 'blocks.3.attn.proj.weight', 'blocks.3.attn.proj.bias', 'blocks.3.norm2.weight', 'blocks.3.norm2.bias', 'blocks.3.mlp.fc1.weight', 'blocks.3.mlp.fc1.bias', 'blocks.3.mlp.fc2.weight', 'blocks.3.mlp.fc2.bias', 'blocks.4.norm1.weight', 'blocks.4.norm1.bias', 'blocks.4.attn.qkv.weight', 'blocks.4.attn.qkv.bias', 'blocks.4.attn.proj.weight', 'blocks.4.attn.proj.bias', 'blocks.4.norm2.weight', 'blocks.4.norm2.bias', 'blocks.4.mlp.fc1.weight', 'blocks.4.mlp.fc1.bias', 'blocks.4.mlp.fc2.weight', 'blocks.4.mlp.fc2.bias', 'blocks.5.norm1.weight', 'blocks.5.norm1.bias', 'blocks.5.attn.qkv.weight', 'blocks.5.attn.qkv.bias', 'blocks.5.attn.proj.weight', 'blocks.5.attn.proj.bias', 'blocks.5.norm2.weight', 'blocks.5.norm2.bias', 'blocks.5.mlp.fc1.weight', 'blocks.5.mlp.fc1.bias', 'blocks.5.mlp.fc2.weight', 'blocks.5.mlp.fc2.bias', 'blocks.6.norm1.weight', 'blocks.6.norm1.bias', 'blocks.6.attn.qkv.weight', 'blocks.6.attn.qkv.bias', 'blocks.6.attn.proj.weight', 'blocks.6.attn.proj.bias', 'blocks.6.norm2.weight', 'blocks.6.norm2.bias', 'blocks.6.mlp.fc1.weight', 'blocks.6.mlp.fc1.bias', 'blocks.6.mlp.fc2.weight', 'blocks.6.mlp.fc2.bias', 'blocks.7.norm1.weight', 'blocks.7.norm1.bias', 'blocks.7.attn.qkv.weight', 'blocks.7.attn.qkv.bias', 'blocks.7.attn.proj.weight', 'blocks.7.attn.proj.bias', 'blocks.7.norm2.weight', 'blocks.7.norm2.bias', 'blocks.7.mlp.fc1.weight', 'blocks.7.mlp.fc1.bias', 'blocks.7.mlp.fc2.weight', 'blocks.7.mlp.fc2.bias', 'blocks.8.norm1.weight', 'blocks.8.norm1.bias', 'blocks.8.attn.qkv.weight', 'blocks.8.attn.qkv.bias', 'blocks.8.attn.proj.weight', 'blocks.8.attn.proj.bias', 'blocks.8.norm2.weight', 'blocks.8.norm2.bias', 'blocks.8.mlp.fc1.weight', 'blocks.8.mlp.fc1.bias', 'blocks.8.mlp.fc2.weight', 'blocks.8.mlp.fc2.bias', 'blocks.9.norm1.weight', 'blocks.9.norm1.bias', 'blocks.9.attn.qkv.weight', 'blocks.9.attn.qkv.bias', 'blocks.9.attn.proj.weight', 'blocks.9.attn.proj.bias', 'blocks.9.norm2.weight', 'blocks.9.norm2.bias', 'blocks.9.mlp.fc1.weight', 'blocks.9.mlp.fc1.bias', 'blocks.9.mlp.fc2.weight', 'blocks.9.mlp.fc2.bias', 'blocks.10.norm1.weight', 'blocks.10.norm1.bias', 'blocks.10.attn.qkv.weight', 'blocks.10.attn.qkv.bias', 'blocks.10.attn.proj.weight', 'blocks.10.attn.proj.bias', 'blocks.10.norm2.weight', 'blocks.10.norm2.bias', 'blocks.10.mlp.fc1.weight', 'blocks.10.mlp.fc1.bias', 'blocks.10.mlp.fc2.weight', 'blocks.10.mlp.fc2.bias', 'blocks.11.norm1.weight', 'blocks.11.norm1.bias', 'blocks.11.attn.qkv.weight', 'blocks.11.attn.qkv.bias', 'blocks.11.attn.proj.weight', 'blocks.11.attn.proj.bias', 'blocks.11.norm2.weight', 'blocks.11.norm2.bias', 'blocks.11.mlp.fc1.weight', 'blocks.11.mlp.fc1.bias', 'blocks.11.mlp.fc2.weight', 'blocks.11.mlp.fc2.bias', 'norm.weight', 'norm.bias', 'decoder_embed.weight', 'decoder_embed.bias', 'decoder_blocks.0.norm1.weight', 'decoder_blocks.0.norm1.bias', 'decoder_blocks.0.attn.qkv.weight', 'decoder_blocks.0.attn.qkv.bias', 'decoder_blocks.0.attn.proj.weight', 'decoder_blocks.0.attn.proj.bias', 'decoder_blocks.0.norm2.weight', 'decoder_blocks.0.norm2.bias', 'decoder_blocks.0.mlp.fc1.weight', 'decoder_blocks.0.mlp.fc1.bias', 'decoder_blocks.0.mlp.fc2.weight', 'decoder_blocks.0.mlp.fc2.bias', 'decoder_blocks.1.norm1.weight', 'decoder_blocks.1.norm1.bias', 'decoder_blocks.1.attn.qkv.weight', 'decoder_blocks.1.attn.qkv.bias', 'decoder_blocks.1.attn.proj.weight', 'decoder_blocks.1.attn.proj.bias', 'decoder_blocks.1.norm2.weight', 'decoder_blocks.1.norm2.bias', 'decoder_blocks.1.mlp.fc1.weight', 'decoder_blocks.1.mlp.fc1.bias', 'decoder_blocks.1.mlp.fc2.weight', 'decoder_blocks.1.mlp.fc2.bias', 'decoder_blocks.2.norm1.weight', 'decoder_blocks.2.norm1.bias', 'decoder_blocks.2.attn.qkv.weight', 'decoder_blocks.2.attn.qkv.bias', 'decoder_blocks.2.attn.proj.weight', 'decoder_blocks.2.attn.proj.bias', 'decoder_blocks.2.norm2.weight', 'decoder_blocks.2.norm2.bias', 'decoder_blocks.2.mlp.fc1.weight', 'decoder_blocks.2.mlp.fc1.bias', 'decoder_blocks.2.mlp.fc2.weight', 'decoder_blocks.2.mlp.fc2.bias', 'decoder_blocks.3.norm1.weight', 'decoder_blocks.3.norm1.bias', 'decoder_blocks.3.attn.qkv.weight', 'decoder_blocks.3.attn.qkv.bias', 'decoder_blocks.3.attn.proj.weight', 'decoder_blocks.3.attn.proj.bias', 'decoder_blocks.3.norm2.weight', 'decoder_blocks.3.norm2.bias', 'decoder_blocks.3.mlp.fc1.weight', 'decoder_blocks.3.mlp.fc1.bias', 'decoder_blocks.3.mlp.fc2.weight', 'decoder_blocks.3.mlp.fc2.bias', 'decoder_blocks.4.norm1.weight', 'decoder_blocks.4.norm1.bias', 'decoder_blocks.4.attn.qkv.weight', 'decoder_blocks.4.attn.qkv.bias', 'decoder_blocks.4.attn.proj.weight', 'decoder_blocks.4.attn.proj.bias', 'decoder_blocks.4.norm2.weight', 'decoder_blocks.4.norm2.bias', 'decoder_blocks.4.mlp.fc1.weight', 'decoder_blocks.4.mlp.fc1.bias', 'decoder_blocks.4.mlp.fc2.weight', 'decoder_blocks.4.mlp.fc2.bias', 'decoder_blocks.5.norm1.weight', 'decoder_blocks.5.norm1.bias', 'decoder_blocks.5.attn.qkv.weight', 'decoder_blocks.5.attn.qkv.bias', 'decoder_blocks.5.attn.proj.weight', 'decoder_blocks.5.attn.proj.bias', 'decoder_blocks.5.norm2.weight', 'decoder_blocks.5.norm2.bias', 'decoder_blocks.5.mlp.fc1.weight', 'decoder_blocks.5.mlp.fc1.bias', 'decoder_blocks.5.mlp.fc2.weight', 'decoder_blocks.5.mlp.fc2.bias', 'decoder_blocks.6.norm1.weight', 'decoder_blocks.6.norm1.bias', 'decoder_blocks.6.attn.qkv.weight', 'decoder_blocks.6.attn.qkv.bias', 'decoder_blocks.6.attn.proj.weight', 'decoder_blocks.6.attn.proj.bias', 'decoder_blocks.6.norm2.weight', 'decoder_blocks.6.norm2.bias', 'decoder_blocks.6.mlp.fc1.weight', 'decoder_blocks.6.mlp.fc1.bias', 'decoder_blocks.6.mlp.fc2.weight', 'decoder_blocks.6.mlp.fc2.bias', 'decoder_blocks.7.norm1.weight', 'decoder_blocks.7.norm1.bias', 'decoder_blocks.7.attn.qkv.weight', 'decoder_blocks.7.attn.qkv.bias', 'decoder_blocks.7.attn.proj.weight', 'decoder_blocks.7.attn.proj.bias', 'decoder_blocks.7.norm2.weight', 'decoder_blocks.7.norm2.bias', 'decoder_blocks.7.mlp.fc1.weight', 'decoder_blocks.7.mlp.fc1.bias', 'decoder_blocks.7.mlp.fc2.weight', 'decoder_blocks.7.mlp.fc2.bias', 'decoder_norm.weight', 'decoder_norm.bias', 'decoder_pred.weight', 'decoder_pred.bias']
+after checkpoint_state_dict ['backbone.net.cls_token', 'backbone.net.pos_embed', 'backbone.net.mask_token', 'backbone.net.patch_embed.proj.weight', 'backbone.net.patch_embed.proj.bias', 'backbone.net.blocks.0.norm1.weight', 'backbone.net.blocks.0.norm1.bias', 'backbone.net.blocks.0.attn.qkv.weight', 'backbone.net.blocks.0.attn.qkv.bias', 'backbone.net.blocks.0.attn.proj.weight', 'backbone.net.blocks.0.attn.proj.bias', 'backbone.net.blocks.0.norm2.weight', 'backbone.net.blocks.0.norm2.bias', 'backbone.net.blocks.0.mlp.fc1.weight', 'backbone.net.blocks.0.mlp.fc1.bias', 'backbone.net.blocks.0.mlp.fc2.weight', 'backbone.net.blocks.0.mlp.fc2.bias', 'backbone.net.blocks.1.norm1.weight', 'backbone.net.blocks.1.norm1.bias', 'backbone.net.blocks.1.attn.qkv.weight', 'backbone.net.blocks.1.attn.qkv.bias', 'backbone.net.blocks.1.attn.proj.weight', 'backbone.net.blocks.1.attn.proj.bias', 'backbone.net.blocks.1.norm2.weight', 'backbone.net.blocks.1.norm2.bias', 'backbone.net.blocks.1.mlp.fc1.weight', 'backbone.net.blocks.1.mlp.fc1.bias', 'backbone.net.blocks.1.mlp.fc2.weight', 'backbone.net.blocks.1.mlp.fc2.bias', 'backbone.net.blocks.2.norm1.weight', 'backbone.net.blocks.2.norm1.bias', 'backbone.net.blocks.2.attn.qkv.weight', 'backbone.net.blocks.2.attn.qkv.bias', 'backbone.net.blocks.2.attn.proj.weight', 'backbone.net.blocks.2.attn.proj.bias', 'backbone.net.blocks.2.norm2.weight', 'backbone.net.blocks.2.norm2.bias', 'backbone.net.blocks.2.mlp.fc1.weight', 'backbone.net.blocks.2.mlp.fc1.bias', 'backbone.net.blocks.2.mlp.fc2.weight', 'backbone.net.blocks.2.mlp.fc2.bias', 'backbone.net.blocks.3.norm1.weight', 'backbone.net.blocks.3.norm1.bias', 'backbone.net.blocks.3.attn.qkv.weight', 'backbone.net.blocks.3.attn.qkv.bias', 'backbone.net.blocks.3.attn.proj.weight', 'backbone.net.blocks.3.attn.proj.bias', 'backbone.net.blocks.3.norm2.weight', 'backbone.net.blocks.3.norm2.bias', 'backbone.net.blocks.3.mlp.fc1.weight', 'backbone.net.blocks.3.mlp.fc1.bias', 'backbone.net.blocks.3.mlp.fc2.weight', 'backbone.net.blocks.3.mlp.fc2.bias', 'backbone.net.blocks.4.norm1.weight', 'backbone.net.blocks.4.norm1.bias', 'backbone.net.blocks.4.attn.qkv.weight', 'backbone.net.blocks.4.attn.qkv.bias', 'backbone.net.blocks.4.attn.proj.weight', 'backbone.net.blocks.4.attn.proj.bias', 'backbone.net.blocks.4.norm2.weight', 'backbone.net.blocks.4.norm2.bias', 'backbone.net.blocks.4.mlp.fc1.weight', 'backbone.net.blocks.4.mlp.fc1.bias', 'backbone.net.blocks.4.mlp.fc2.weight', 'backbone.net.blocks.4.mlp.fc2.bias', 'backbone.net.blocks.5.norm1.weight', 'backbone.net.blocks.5.norm1.bias', 'backbone.net.blocks.5.attn.qkv.weight', 'backbone.net.blocks.5.attn.qkv.bias', 'backbone.net.blocks.5.attn.proj.weight', 'backbone.net.blocks.5.attn.proj.bias', 'backbone.net.blocks.5.norm2.weight', 'backbone.net.blocks.5.norm2.bias', 'backbone.net.blocks.5.mlp.fc1.weight', 'backbone.net.blocks.5.mlp.fc1.bias', 'backbone.net.blocks.5.mlp.fc2.weight', 'backbone.net.blocks.5.mlp.fc2.bias', 'backbone.net.blocks.6.norm1.weight', 'backbone.net.blocks.6.norm1.bias', 'backbone.net.blocks.6.attn.qkv.weight', 'backbone.net.blocks.6.attn.qkv.bias', 'backbone.net.blocks.6.attn.proj.weight', 'backbone.net.blocks.6.attn.proj.bias', 'backbone.net.blocks.6.norm2.weight', 'backbone.net.blocks.6.norm2.bias', 'backbone.net.blocks.6.mlp.fc1.weight', 'backbone.net.blocks.6.mlp.fc1.bias', 'backbone.net.blocks.6.mlp.fc2.weight', 'backbone.net.blocks.6.mlp.fc2.bias', 'backbone.net.blocks.7.norm1.weight', 'backbone.net.blocks.7.norm1.bias', 'backbone.net.blocks.7.attn.qkv.weight', 'backbone.net.blocks.7.attn.qkv.bias', 'backbone.net.blocks.7.attn.proj.weight', 'backbone.net.blocks.7.attn.proj.bias', 'backbone.net.blocks.7.norm2.weight', 'backbone.net.blocks.7.norm2.bias', 'backbone.net.blocks.7.mlp.fc1.weight', 'backbone.net.blocks.7.mlp.fc1.bias', 'backbone.net.blocks.7.mlp.fc2.weight', 'backbone.net.blocks.7.mlp.fc2.bias', 'backbone.net.blocks.8.norm1.weight', 'backbone.net.blocks.8.norm1.bias', 'backbone.net.blocks.8.attn.qkv.weight', 'backbone.net.blocks.8.attn.qkv.bias', 'backbone.net.blocks.8.attn.proj.weight', 'backbone.net.blocks.8.attn.proj.bias', 'backbone.net.blocks.8.norm2.weight', 'backbone.net.blocks.8.norm2.bias', 'backbone.net.blocks.8.mlp.fc1.weight', 'backbone.net.blocks.8.mlp.fc1.bias', 'backbone.net.blocks.8.mlp.fc2.weight', 'backbone.net.blocks.8.mlp.fc2.bias', 'backbone.net.blocks.9.norm1.weight', 'backbone.net.blocks.9.norm1.bias', 'backbone.net.blocks.9.attn.qkv.weight', 'backbone.net.blocks.9.attn.qkv.bias', 'backbone.net.blocks.9.attn.proj.weight', 'backbone.net.blocks.9.attn.proj.bias', 'backbone.net.blocks.9.norm2.weight', 'backbone.net.blocks.9.norm2.bias', 'backbone.net.blocks.9.mlp.fc1.weight', 'backbone.net.blocks.9.mlp.fc1.bias', 'backbone.net.blocks.9.mlp.fc2.weight', 'backbone.net.blocks.9.mlp.fc2.bias', 'backbone.net.blocks.10.norm1.weight', 'backbone.net.blocks.10.norm1.bias', 'backbone.net.blocks.10.attn.qkv.weight', 'backbone.net.blocks.10.attn.qkv.bias', 'backbone.net.blocks.10.attn.proj.weight', 'backbone.net.blocks.10.attn.proj.bias', 'backbone.net.blocks.10.norm2.weight', 'backbone.net.blocks.10.norm2.bias', 'backbone.net.blocks.10.mlp.fc1.weight', 'backbone.net.blocks.10.mlp.fc1.bias', 'backbone.net.blocks.10.mlp.fc2.weight', 'backbone.net.blocks.10.mlp.fc2.bias', 'backbone.net.blocks.11.norm1.weight', 'backbone.net.blocks.11.norm1.bias', 'backbone.net.blocks.11.attn.qkv.weight', 'backbone.net.blocks.11.attn.qkv.bias', 'backbone.net.blocks.11.attn.proj.weight', 'backbone.net.blocks.11.attn.proj.bias', 'backbone.net.blocks.11.norm2.weight', 'backbone.net.blocks.11.norm2.bias', 'backbone.net.blocks.11.mlp.fc1.weight', 'backbone.net.blocks.11.mlp.fc1.bias', 'backbone.net.blocks.11.mlp.fc2.weight', 'backbone.net.blocks.11.mlp.fc2.bias', 'backbone.net.norm.weight', 'backbone.net.norm.bias']checkpoint.get("matching_heuristics", False) False
+checkpoint_state_dict ['cls_token', 'pos_embed', 'mask_token', 'decoder_pos_embed', 'patch_embed.proj.weight', 'patch_embed.proj.bias', 'blocks.0.norm1.weight', 'blocks.0.norm1.bias', 'blocks.0.attn.qkv.weight', 'blocks.0.attn.qkv.bias', 'blocks.0.attn.proj.weight', 'blocks.0.attn.proj.bias', 'blocks.0.norm2.weight', 'blocks.0.norm2.bias', 'blocks.0.mlp.fc1.weight', 'blocks.0.mlp.fc1.bias', 'blocks.0.mlp.fc2.weight', 'blocks.0.mlp.fc2.bias', 'blocks.1.norm1.weight', 'blocks.1.norm1.bias', 'blocks.1.attn.qkv.weight', 'blocks.1.attn.qkv.bias', 'blocks.1.attn.proj.weight', 'blocks.1.attn.proj.bias', 'blocks.1.norm2.weight', 'blocks.1.norm2.bias', 'blocks.1.mlp.fc1.weight', 'blocks.1.mlp.fc1.bias', 'blocks.1.mlp.fc2.weight', 'blocks.1.mlp.fc2.bias', 'blocks.2.norm1.weight', 'blocks.2.norm1.bias', 'blocks.2.attn.qkv.weight', 'blocks.2.attn.qkv.bias', 'blocks.2.attn.proj.weight', 'blocks.2.attn.proj.bias', 'blocks.2.norm2.weight', 'blocks.2.norm2.bias', 'blocks.2.mlp.fc1.weight', 'blocks.2.mlp.fc1.bias', 'blocks.2.mlp.fc2.weight', 'blocks.2.mlp.fc2.bias', 'blocks.3.norm1.weight', 'blocks.3.norm1.bias', 'blocks.3.attn.qkv.weight', 'blocks.3.attn.qkv.bias', 'blocks.3.attn.proj.weight', 'blocks.3.attn.proj.bias', 'blocks.3.norm2.weight', 'blocks.3.norm2.bias', 'blocks.3.mlp.fc1.weight', 'blocks.3.mlp.fc1.bias', 'blocks.3.mlp.fc2.weight', 'blocks.3.mlp.fc2.bias', 'blocks.4.norm1.weight', 'blocks.4.norm1.bias', 'blocks.4.attn.qkv.weight', 'blocks.4.attn.qkv.bias', 'blocks.4.attn.proj.weight', 'blocks.4.attn.proj.bias', 'blocks.4.norm2.weight', 'blocks.4.norm2.bias', 'blocks.4.mlp.fc1.weight', 'blocks.4.mlp.fc1.bias', 'blocks.4.mlp.fc2.weight', 'blocks.4.mlp.fc2.bias', 'blocks.5.norm1.weight', 'blocks.5.norm1.bias', 'blocks.5.attn.qkv.weight', 'blocks.5.attn.qkv.bias', 'blocks.5.attn.proj.weight', 'blocks.5.attn.proj.bias', 'blocks.5.norm2.weight', 'blocks.5.norm2.bias', 'blocks.5.mlp.fc1.weight', 'blocks.5.mlp.fc1.bias', 'blocks.5.mlp.fc2.weight', 'blocks.5.mlp.fc2.bias', 'blocks.6.norm1.weight', 'blocks.6.norm1.bias', 'blocks.6.attn.qkv.weight', 'blocks.6.attn.qkv.bias', 'blocks.6.attn.proj.weight', 'blocks.6.attn.proj.bias', 'blocks.6.norm2.weight', 'blocks.6.norm2.bias', 'blocks.6.mlp.fc1.weight', 'blocks.6.mlp.fc1.bias', 'blocks.6.mlp.fc2.weight', 'blocks.6.mlp.fc2.bias', 'blocks.7.norm1.weight', 'blocks.7.norm1.bias', 'blocks.7.attn.qkv.weight', 'blocks.7.attn.qkv.bias', 'blocks.7.attn.proj.weight', 'blocks.7.attn.proj.bias', 'blocks.7.norm2.weight', 'blocks.7.norm2.bias', 'blocks.7.mlp.fc1.weight', 'blocks.7.mlp.fc1.bias', 'blocks.7.mlp.fc2.weight', 'blocks.7.mlp.fc2.bias', 'blocks.8.norm1.weight', 'blocks.8.norm1.bias', 'blocks.8.attn.qkv.weight', 'blocks.8.attn.qkv.bias', 'blocks.8.attn.proj.weight', 'blocks.8.attn.proj.bias', 'blocks.8.norm2.weight', 'blocks.8.norm2.bias', 'blocks.8.mlp.fc1.weight', 'blocks.8.mlp.fc1.bias', 'blocks.8.mlp.fc2.weight', 'blocks.8.mlp.fc2.bias', 'blocks.9.norm1.weight', 'blocks.9.norm1.bias', 'blocks.9.attn.qkv.weight', 'blocks.9.attn.qkv.bias', 'blocks.9.attn.proj.weight', 'blocks.9.attn.proj.bias', 'blocks.9.norm2.weight', 'blocks.9.norm2.bias', 'blocks.9.mlp.fc1.weight', 'blocks.9.mlp.fc1.bias', 'blocks.9.mlp.fc2.weight', 'blocks.9.mlp.fc2.bias', 'blocks.10.norm1.weight', 'blocks.10.norm1.bias', 'blocks.10.attn.qkv.weight', 'blocks.10.attn.qkv.bias', 'blocks.10.attn.proj.weight', 'blocks.10.attn.proj.bias', 'blocks.10.norm2.weight', 'blocks.10.norm2.bias', 'blocks.10.mlp.fc1.weight', 'blocks.10.mlp.fc1.bias', 'blocks.10.mlp.fc2.weight', 'blocks.10.mlp.fc2.bias', 'blocks.11.norm1.weight', 'blocks.11.norm1.bias', 'blocks.11.attn.qkv.weight', 'blocks.11.attn.qkv.bias', 'blocks.11.attn.proj.weight', 'blocks.11.attn.proj.bias', 'blocks.11.norm2.weight', 'blocks.11.norm2.bias', 'blocks.11.mlp.fc1.weight', 'blocks.11.mlp.fc1.bias', 'blocks.11.mlp.fc2.weight', 'blocks.11.mlp.fc2.bias', 'norm.weight', 'norm.bias', 'decoder_embed.weight', 'decoder_embed.bias', 'decoder_blocks.0.norm1.weight', 'decoder_blocks.0.norm1.bias', 'decoder_blocks.0.attn.qkv.weight', 'decoder_blocks.0.attn.qkv.bias', 'decoder_blocks.0.attn.proj.weight', 'decoder_blocks.0.attn.proj.bias', 'decoder_blocks.0.norm2.weight', 'decoder_blocks.0.norm2.bias', 'decoder_blocks.0.mlp.fc1.weight', 'decoder_blocks.0.mlp.fc1.bias', 'decoder_blocks.0.mlp.fc2.weight', 'decoder_blocks.0.mlp.fc2.bias', 'decoder_blocks.1.norm1.weight', 'decoder_blocks.1.norm1.bias', 'decoder_blocks.1.attn.qkv.weight', 'decoder_blocks.1.attn.qkv.bias', 'decoder_blocks.1.attn.proj.weight', 'decoder_blocks.1.attn.proj.bias', 'decoder_blocks.1.norm2.weight', 'decoder_blocks.1.norm2.bias', 'decoder_blocks.1.mlp.fc1.weight', 'decoder_blocks.1.mlp.fc1.bias', 'decoder_blocks.1.mlp.fc2.weight', 'decoder_blocks.1.mlp.fc2.bias', 'decoder_blocks.2.norm1.weight', 'decoder_blocks.2.norm1.bias', 'decoder_blocks.2.attn.qkv.weight', 'decoder_blocks.2.attn.qkv.bias', 'decoder_blocks.2.attn.proj.weight', 'decoder_blocks.2.attn.proj.bias', 'decoder_blocks.2.norm2.weight', 'decoder_blocks.2.norm2.bias', 'decoder_blocks.2.mlp.fc1.weight', 'decoder_blocks.2.mlp.fc1.bias', 'decoder_blocks.2.mlp.fc2.weight', 'decoder_blocks.2.mlp.fc2.bias', 'decoder_blocks.3.norm1.weight', 'decoder_blocks.3.norm1.bias', 'decoder_blocks.3.attn.qkv.weight', 'decoder_blocks.3.attn.qkv.bias', 'decoder_blocks.3.attn.proj.weight', 'decoder_blocks.3.attn.proj.bias', 'decoder_blocks.3.norm2.weight', 'decoder_blocks.3.norm2.bias', 'decoder_blocks.3.mlp.fc1.weight', 'decoder_blocks.3.mlp.fc1.bias', 'decoder_blocks.3.mlp.fc2.weight', 'decoder_blocks.3.mlp.fc2.bias', 'decoder_blocks.4.norm1.weight', 'decoder_blocks.4.norm1.bias', 'decoder_blocks.4.attn.qkv.weight', 'decoder_blocks.4.attn.qkv.bias', 'decoder_blocks.4.attn.proj.weight', 'decoder_blocks.4.attn.proj.bias', 'decoder_blocks.4.norm2.weight', 'decoder_blocks.4.norm2.bias', 'decoder_blocks.4.mlp.fc1.weight', 'decoder_blocks.4.mlp.fc1.bias', 'decoder_blocks.4.mlp.fc2.weight', 'decoder_blocks.4.mlp.fc2.bias', 'decoder_blocks.5.norm1.weight', 'decoder_blocks.5.norm1.bias', 'decoder_blocks.5.attn.qkv.weight', 'decoder_blocks.5.attn.qkv.bias', 'decoder_blocks.5.attn.proj.weight', 'decoder_blocks.5.attn.proj.bias', 'decoder_blocks.5.norm2.weight', 'decoder_blocks.5.norm2.bias', 'decoder_blocks.5.mlp.fc1.weight', 'decoder_blocks.5.mlp.fc1.bias', 'decoder_blocks.5.mlp.fc2.weight', 'decoder_blocks.5.mlp.fc2.bias', 'decoder_blocks.6.norm1.weight', 'decoder_blocks.6.norm1.bias', 'decoder_blocks.6.attn.qkv.weight', 'decoder_blocks.6.attn.qkv.bias', 'decoder_blocks.6.attn.proj.weight', 'decoder_blocks.6.attn.proj.bias', 'decoder_blocks.6.norm2.weight', 'decoder_blocks.6.norm2.bias', 'decoder_blocks.6.mlp.fc1.weight', 'decoder_blocks.6.mlp.fc1.bias', 'decoder_blocks.6.mlp.fc2.weight', 'decoder_blocks.6.mlp.fc2.bias', 'decoder_blocks.7.norm1.weight', 'decoder_blocks.7.norm1.bias', 'decoder_blocks.7.attn.qkv.weight', 'decoder_blocks.7.attn.qkv.bias', 'decoder_blocks.7.attn.proj.weight', 'decoder_blocks.7.attn.proj.bias', 'decoder_blocks.7.norm2.weight', 'decoder_blocks.7.norm2.bias', 'decoder_blocks.7.mlp.fc1.weight', 'decoder_blocks.7.mlp.fc1.bias', 'decoder_blocks.7.mlp.fc2.weight', 'decoder_blocks.7.mlp.fc2.bias', 'decoder_norm.weight', 'decoder_norm.bias', 'decoder_pred.weight', 'decoder_pred.bias']
+after checkpoint_state_dict ['backbone.net.cls_token', 'backbone.net.pos_embed', 'backbone.net.mask_token', 'backbone.net.patch_embed.proj.weight', 'backbone.net.patch_embed.proj.bias', 'backbone.net.blocks.0.norm1.weight', 'backbone.net.blocks.0.norm1.bias', 'backbone.net.blocks.0.attn.qkv.weight', 'backbone.net.blocks.0.attn.qkv.bias', 'backbone.net.blocks.0.attn.proj.weight', 'backbone.net.blocks.0.attn.proj.bias', 'backbone.net.blocks.0.norm2.weight', 'backbone.net.blocks.0.norm2.bias', 'backbone.net.blocks.0.mlp.fc1.weight', 'backbone.net.blocks.0.mlp.fc1.bias', 'backbone.net.blocks.0.mlp.fc2.weight', 'backbone.net.blocks.0.mlp.fc2.bias', 'backbone.net.blocks.1.norm1.weight', 'backbone.net.blocks.1.norm1.bias', 'backbone.net.blocks.1.attn.qkv.weight', 'backbone.net.blocks.1.attn.qkv.bias', 'backbone.net.blocks.1.attn.proj.weight', 'backbone.net.blocks.1.attn.proj.bias', 'backbone.net.blocks.1.norm2.weight', 'backbone.net.blocks.1.norm2.bias', 'backbone.net.blocks.1.mlp.fc1.weight', 'backbone.net.blocks.1.mlp.fc1.bias', 'backbone.net.blocks.1.mlp.fc2.weight', 'backbone.net.blocks.1.mlp.fc2.bias', 'backbone.net.blocks.2.norm1.weight', 'backbone.net.blocks.2.norm1.bias', 'backbone.net.blocks.2.attn.qkv.weight', 'backbone.net.blocks.2.attn.qkv.bias', 'backbone.net.blocks.2.attn.proj.weight', 'backbone.net.blocks.2.attn.proj.bias', 'backbone.net.blocks.2.norm2.weight', 'backbone.net.blocks.2.norm2.bias', 'backbone.net.blocks.2.mlp.fc1.weight', 'backbone.net.blocks.2.mlp.fc1.bias', 'backbone.net.blocks.2.mlp.fc2.weight', 'backbone.net.blocks.2.mlp.fc2.bias', 'backbone.net.blocks.3.norm1.weight', 'backbone.net.blocks.3.norm1.bias', 'backbone.net.blocks.3.attn.qkv.weight', 'backbone.net.blocks.3.attn.qkv.bias', 'backbone.net.blocks.3.attn.proj.weight', 'backbone.net.blocks.3.attn.proj.bias', 'backbone.net.blocks.3.norm2.weight', 'backbone.net.blocks.3.norm2.bias', 'backbone.net.blocks.3.mlp.fc1.weight', 'backbone.net.blocks.3.mlp.fc1.bias', 'backbone.net.blocks.3.mlp.fc2.weight', 'backbone.net.blocks.3.mlp.fc2.bias', 'backbone.net.blocks.4.norm1.weight', 'backbone.net.blocks.4.norm1.bias', 'backbone.net.blocks.4.attn.qkv.weight', 'backbone.net.blocks.4.attn.qkv.bias', 'backbone.net.blocks.4.attn.proj.weight', 'backbone.net.blocks.4.attn.proj.bias', 'backbone.net.blocks.4.norm2.weight', 'backbone.net.blocks.4.norm2.bias', 'backbone.net.blocks.4.mlp.fc1.weight', 'backbone.net.blocks.4.mlp.fc1.bias', 'backbone.net.blocks.4.mlp.fc2.weight', 'backbone.net.blocks.4.mlp.fc2.bias', 'backbone.net.blocks.5.norm1.weight', 'backbone.net.blocks.5.norm1.bias', 'backbone.net.blocks.5.attn.qkv.weight', 'backbone.net.blocks.5.attn.qkv.bias', 'backbone.net.blocks.5.attn.proj.weight', 'backbone.net.blocks.5.attn.proj.bias', 'backbone.net.blocks.5.norm2.weight', 'backbone.net.blocks.5.norm2.bias', 'backbone.net.blocks.5.mlp.fc1.weight', 'backbone.net.blocks.5.mlp.fc1.bias', 'backbone.net.blocks.5.mlp.fc2.weight', 'backbone.net.blocks.5.mlp.fc2.bias', 'backbone.net.blocks.6.norm1.weight', 'backbone.net.blocks.6.norm1.bias', 'backbone.net.blocks.6.attn.qkv.weight', 'backbone.net.blocks.6.attn.qkv.bias', 'backbone.net.blocks.6.attn.proj.weight', 'backbone.net.blocks.6.attn.proj.bias', 'backbone.net.blocks.6.norm2.weight', 'backbone.net.blocks.6.norm2.bias', 'backbone.net.blocks.6.mlp.fc1.weight', 'backbone.net.blocks.6.mlp.fc1.bias', 'backbone.net.blocks.6.mlp.fc2.weight', 'backbone.net.blocks.6.mlp.fc2.bias', 'backbone.net.blocks.7.norm1.weight', 'backbone.net.blocks.7.norm1.bias', 'backbone.net.blocks.7.attn.qkv.weight', 'backbone.net.blocks.7.attn.qkv.bias', 'backbone.net.blocks.7.attn.proj.weight', 'backbone.net.blocks.7.attn.proj.bias', 'backbone.net.blocks.7.norm2.weight', 'backbone.net.blocks.7.norm2.bias', 'backbone.net.blocks.7.mlp.fc1.weight', 'backbone.net.blocks.7.mlp.fc1.bias', 'backbone.net.blocks.7.mlp.fc2.weight', 'backbone.net.blocks.7.mlp.fc2.bias', 'backbone.net.blocks.8.norm1.weight', 'backbone.net.blocks.8.norm1.bias', 'backbone.net.blocks.8.attn.qkv.weight', 'backbone.net.blocks.8.attn.qkv.bias', 'backbone.net.blocks.8.attn.proj.weight', 'backbone.net.blocks.8.attn.proj.bias', 'backbone.net.blocks.8.norm2.weight', 'backbone.net.blocks.8.norm2.bias', 'backbone.net.blocks.8.mlp.fc1.weight', 'backbone.net.blocks.8.mlp.fc1.bias', 'backbone.net.blocks.8.mlp.fc2.weight', 'backbone.net.blocks.8.mlp.fc2.bias', 'backbone.net.blocks.9.norm1.weight', 'backbone.net.blocks.9.norm1.bias', 'backbone.net.blocks.9.attn.qkv.weight', 'backbone.net.blocks.9.attn.qkv.bias', 'backbone.net.blocks.9.attn.proj.weight', 'backbone.net.blocks.9.attn.proj.bias', 'backbone.net.blocks.9.norm2.weight', 'backbone.net.blocks.9.norm2.bias', 'backbone.net.blocks.9.mlp.fc1.weight', 'backbone.net.blocks.9.mlp.fc1.bias', 'backbone.net.blocks.9.mlp.fc2.weight', 'backbone.net.blocks.9.mlp.fc2.bias', 'backbone.net.blocks.10.norm1.weight', 'backbone.net.blocks.10.norm1.bias', 'backbone.net.blocks.10.attn.qkv.weight', 'backbone.net.blocks.10.attn.qkv.bias', 'backbone.net.blocks.10.attn.proj.weight', 'backbone.net.blocks.10.attn.proj.bias', 'backbone.net.blocks.10.norm2.weight', 'backbone.net.blocks.10.norm2.bias', 'backbone.net.blocks.10.mlp.fc1.weight', 'backbone.net.blocks.10.mlp.fc1.bias', 'backbone.net.blocks.10.mlp.fc2.weight', 'backbone.net.blocks.10.mlp.fc2.bias', 'backbone.net.blocks.11.norm1.weight', 'backbone.net.blocks.11.norm1.bias', 'backbone.net.blocks.11.attn.qkv.weight', 'backbone.net.blocks.11.attn.qkv.bias', 'backbone.net.blocks.11.attn.proj.weight', 'backbone.net.blocks.11.attn.proj.bias', 'backbone.net.blocks.11.norm2.weight', 'backbone.net.blocks.11.norm2.bias', 'backbone.net.blocks.11.mlp.fc1.weight', 'backbone.net.blocks.11.mlp.fc1.bias', 'backbone.net.blocks.11.mlp.fc2.weight', 'backbone.net.blocks.11.mlp.fc2.bias', 'backbone.net.norm.weight', 'backbone.net.norm.bias']
+incompatible _IncompatibleKeys(missing_keys=['backbone.simfp_2.0.weight', 'backbone.simfp_2.0.bias', 'backbone.simfp_2.1.weight', 'backbone.simfp_2.1.bias', 'backbone.simfp_2.3.weight', 'backbone.simfp_2.3.bias', 'backbone.simfp_2.4.weight', 'backbone.simfp_2.4.norm.weight', 'backbone.simfp_2.4.norm.bias', 'backbone.simfp_2.5.weight', 'backbone.simfp_2.5.norm.weight', 'backbone.simfp_2.5.norm.bias', 'backbone.simfp_3.0.weight', 'backbone.simfp_3.0.bias', 'backbone.simfp_3.1.weight', 'backbone.simfp_3.1.norm.weight', 'backbone.simfp_3.1.norm.bias', 'backbone.simfp_3.2.weight', 'backbone.simfp_3.2.norm.weight', 'backbone.simfp_3.2.norm.bias', 'backbone.simfp_4.0.weight', 'backbone.simfp_4.0.norm.weight', 'backbone.simfp_4.0.norm.bias', 'backbone.simfp_4.1.weight', 'backbone.simfp_4.1.norm.weight', 'backbone.simfp_4.1.norm.bias', 'backbone.simfp_5.1.weight', 'backbone.simfp_5.1.norm.weight', 'backbone.simfp_5.1.norm.bias', 'backbone.simfp_5.2.weight', 'backbone.simfp_5.2.norm.weight', 'backbone.simfp_5.2.norm.bias', 'backbone.net.blocks.0.attn.rel_pos_h', 'backbone.net.blocks.0.attn.rel_pos_w', 'backbone.net.blocks.1.attn.rel_pos_h', 'backbone.net.blocks.1.attn.rel_pos_w', 'backbone.net.blocks.2.attn.rel_pos_h', 'backbone.net.blocks.2.attn.rel_pos_w', 'backbone.net.blocks.3.attn.rel_pos_h', 'backbone.net.blocks.3.attn.rel_pos_w', 'backbone.net.blocks.4.attn.rel_pos_h', 'backbone.net.blocks.4.attn.rel_pos_w', 'backbone.net.blocks.5.attn.rel_pos_h', 'backbone.net.blocks.5.attn.rel_pos_w', 'backbone.net.blocks.6.attn.rel_pos_h', 'backbone.net.blocks.6.attn.rel_pos_w', 'backbone.net.blocks.7.attn.rel_pos_h', 'backbone.net.blocks.7.attn.rel_pos_w', 'backbone.net.blocks.8.attn.rel_pos_h', 'backbone.net.blocks.8.attn.rel_pos_w', 'backbone.net.blocks.9.attn.rel_pos_h', 'backbone.net.blocks.9.attn.rel_pos_w', 'backbone.net.blocks.10.attn.rel_pos_h', 'backbone.net.blocks.10.attn.rel_pos_w', 'backbone.net.blocks.11.attn.rel_pos_h', 'backbone.net.blocks.11.attn.rel_pos_w', 'proposal_generator.rpn_head.conv.conv0.weight', 'proposal_generator.rpn_head.conv.conv0.bias', 'proposal_generator.rpn_head.conv.conv1.weight', 'proposal_generator.rpn_head.conv.conv1.bias', 'proposal_generator.rpn_head.objectness_logits.weight', 'proposal_generator.rpn_head.objectness_logits.bias', 'proposal_generator.rpn_head.anchor_deltas.weight', 'proposal_generator.rpn_head.anchor_deltas.bias', 'roi_heads.box_head.conv1.weight', 'roi_heads.box_head.conv1.norm.weight', 'roi_heads.box_head.conv1.norm.bias', 'roi_heads.box_head.conv2.weight', 'roi_heads.box_head.conv2.norm.weight', 'roi_heads.box_head.conv2.norm.bias', 'roi_heads.box_head.conv3.weight', 'roi_heads.box_head.conv3.norm.weight', 'roi_heads.box_head.conv3.norm.bias', 'roi_heads.box_head.conv4.weight', 'roi_heads.box_head.conv4.norm.weight', 'roi_heads.box_head.conv4.norm.bias', 'roi_heads.box_head.fc1.weight', 'roi_heads.box_head.fc1.bias', 'roi_heads.box_predictor.cls_score.weight', 'roi_heads.box_predictor.cls_score.bias', 'roi_heads.box_predictor.bbox_pred.weight', 'roi_heads.box_predictor.bbox_pred.bias', 'roi_heads.mask_head.mask_fcn1.weight', 'roi_heads.mask_head.mask_fcn1.norm.weight', 'roi_heads.mask_head.mask_fcn1.norm.bias', 'roi_heads.mask_head.mask_fcn2.weight', 'roi_heads.mask_head.mask_fcn2.norm.weight', 'roi_heads.mask_head.mask_fcn2.norm.bias', 'roi_heads.mask_head.mask_fcn3.weight', 'roi_heads.mask_head.mask_fcn3.norm.weight', 'roi_heads.mask_head.mask_fcn3.norm.bias', 'roi_heads.mask_head.mask_fcn4.weight', 'roi_heads.mask_head.mask_fcn4.norm.weight', 'roi_heads.mask_head.mask_fcn4.norm.bias', 'roi_heads.mask_head.deconv.weight', 'roi_heads.mask_head.deconv.bias', 'roi_heads.mask_head.predictor.weight', 'roi_heads.mask_head.predictor.bias'], unexpected_keys=['backbone.net.cls_token', 'backbone.net.mask_token', 'backbone.net.norm.weight', 'backbone.net.norm.bias'], incorrect_shapes=[])
+
+incompatible _IncompatibleKeys(missing_keys=['backbone.simfp_2.0.weight', 'backbone.simfp_2.0.bias', 'backbone.simfp_2.1.weight', 'backbone.simfp_2.1.bias', 'backbone.simfp_2.3.weight', 'backbone.simfp_2.3.bias', 'backbone.simfp_2.4.weight', 'backbone.simfp_2.4.norm.weight', 'backbone.simfp_2.4.norm.bias', 'backbone.simfp_2.5.weight', 'backbone.simfp_2.5.norm.weight', 'backbone.simfp_2.5.norm.bias', 'backbone.simfp_3.0.weight', 'backbone.simfp_3.0.bias', 'backbone.simfp_3.1.weight', 'backbone.simfp_3.1.norm.weight', 'backbone.simfp_3.1.norm.bias', 'backbone.simfp_3.2.weight', 'backbone.simfp_3.2.norm.weight', 'backbone.simfp_3.2.norm.bias', 'backbone.simfp_4.0.weight', 'backbone.simfp_4.0.norm.weight', 'backbone.simfp_4.0.norm.bias', 'backbone.simfp_4.1.weight', 'backbone.simfp_4.1.norm.weight', 'backbone.simfp_4.1.norm.bias', 'backbone.simfp_5.1.weight', 'backbone.simfp_5.1.norm.weight', 'backbone.simfp_5.1.norm.bias', 'backbone.simfp_5.2.weight', 'backbone.simfp_5.2.norm.weight', 'backbone.simfp_5.2.norm.bias', 'backbone.net.blocks.0.attn.rel_pos_h', 'backbone.net.blocks.0.attn.rel_pos_w', 'backbone.net.blocks.1.attn.rel_pos_h', 'backbone.net.blocks.1.attn.rel_pos_w', 'backbone.net.blocks.2.attn.rel_pos_h', 'backbone.net.blocks.2.attn.rel_pos_w', 'backbone.net.blocks.3.attn.rel_pos_h', 'backbone.net.blocks.3.attn.rel_pos_w', 'backbone.net.blocks.4.attn.rel_pos_h', 'backbone.net.blocks.4.attn.rel_pos_w', 'backbone.net.blocks.5.attn.rel_pos_h', 'backbone.net.blocks.5.attn.rel_pos_w', 'backbone.net.blocks.6.attn.rel_pos_h', 'backbone.net.blocks.6.attn.rel_pos_w', 'backbone.net.blocks.7.attn.rel_pos_h', 'backbone.net.blocks.7.attn.rel_pos_w', 'backbone.net.blocks.8.attn.rel_pos_h', 'backbone.net.blocks.8.attn.rel_pos_w', 'backbone.net.blocks.9.attn.rel_pos_h', 'backbone.net.blocks.9.attn.rel_pos_w', 'backbone.net.blocks.10.attn.rel_pos_h', 'backbone.net.blocks.10.attn.rel_pos_w', 'backbone.net.blocks.11.attn.rel_pos_h', 'backbone.net.blocks.11.attn.rel_pos_w', 'proposal_generator.rpn_head.conv.conv0.weight', 'proposal_generator.rpn_head.conv.conv0.bias', 'proposal_generator.rpn_head.conv.conv1.weight', 'proposal_generator.rpn_head.conv.conv1.bias', 'proposal_generator.rpn_head.objectness_logits.weight', 'proposal_generator.rpn_head.objectness_logits.bias', 'proposal_generator.rpn_head.anchor_deltas.weight', 'proposal_generator.rpn_head.anchor_deltas.bias', 'roi_heads.box_head.conv1.weight', 'roi_heads.box_head.conv1.norm.weight', 'roi_heads.box_head.conv1.norm.bias', 'roi_heads.box_head.conv2.weight', 'roi_heads.box_head.conv2.norm.weight', 'roi_heads.box_head.conv2.norm.bias', 'roi_heads.box_head.conv3.weight', 'roi_heads.box_head.conv3.norm.weight', 'roi_heads.box_head.conv3.norm.bias', 'roi_heads.box_head.conv4.weight', 'roi_heads.box_head.conv4.norm.weight', 'roi_heads.box_head.conv4.norm.bias', 'roi_heads.box_head.fc1.weight', 'roi_heads.box_head.fc1.bias', 'roi_heads.box_predictor.cls_score.weight', 'roi_heads.box_predictor.cls_score.bias', 'roi_heads.box_predictor.bbox_pred.weight', 'roi_heads.box_predictor.bbox_pred.bias', 'roi_heads.mask_head.mask_fcn1.weight', 'roi_heads.mask_head.mask_fcn1.norm.weight', 'roi_heads.mask_head.mask_fcn1.norm.bias', 'roi_heads.mask_head.mask_fcn2.weight', 'roi_heads.mask_head.mask_fcn2.norm.weight', 'roi_heads.mask_head.mask_fcn2.norm.bias', 'roi_heads.mask_head.mask_fcn3.weight', 'roi_heads.mask_head.mask_fcn3.norm.weight', 'roi_heads.mask_head.mask_fcn3.norm.bias', 'roi_heads.mask_head.mask_fcn4.weight', 'roi_heads.mask_head.mask_fcn4.norm.weight', 'roi_heads.mask_head.mask_fcn4.norm.bias', 'roi_heads.mask_head.deconv.weight', 'roi_heads.mask_head.deconv.bias', 'roi_heads.mask_head.predictor.weight', 'roi_heads.mask_head.predictor.bias'], unexpected_keys=['backbone.net.cls_token', 'backbone.net.mask_token', 'backbone.net.norm.weight', 'backbone.net.norm.bias'], incorrect_shapes=[])
+
+incompatible _IncompatibleKeys(missing_keys=['backbone.simfp_2.0.weight', 'backbone.simfp_2.0.bias', 'backbone.simfp_2.1.weight', 'backbone.simfp_2.1.bias', 'backbone.simfp_2.3.weight', 'backbone.simfp_2.3.bias', 'backbone.simfp_2.4.weight', 'backbone.simfp_2.4.norm.weight', 'backbone.simfp_2.4.norm.bias', 'backbone.simfp_2.5.weight', 'backbone.simfp_2.5.norm.weight', 'backbone.simfp_2.5.norm.bias', 'backbone.simfp_3.0.weight', 'backbone.simfp_3.0.bias', 'backbone.simfp_3.1.weight', 'backbone.simfp_3.1.norm.weight', 'backbone.simfp_3.1.norm.bias', 'backbone.simfp_3.2.weight', 'backbone.simfp_3.2.norm.weight', 'backbone.simfp_3.2.norm.bias', 'backbone.simfp_4.0.weight', 'backbone.simfp_4.0.norm.weight', 'backbone.simfp_4.0.norm.bias', 'backbone.simfp_4.1.weight', 'backbone.simfp_4.1.norm.weight', 'backbone.simfp_4.1.norm.bias', 'backbone.simfp_5.1.weight', 'backbone.simfp_5.1.norm.weight', 'backbone.simfp_5.1.norm.bias', 'backbone.simfp_5.2.weight', 'backbone.simfp_5.2.norm.weight', 'backbone.simfp_5.2.norm.bias', 'backbone.net.blocks.0.attn.rel_pos_h', 'backbone.net.blocks.0.attn.rel_pos_w', 'backbone.net.blocks.1.attn.rel_pos_h', 'backbone.net.blocks.1.attn.rel_pos_w', 'backbone.net.blocks.2.attn.rel_pos_h', 'backbone.net.blocks.2.attn.rel_pos_w', 'backbone.net.blocks.3.attn.rel_pos_h', 'backbone.net.blocks.3.attn.rel_pos_w', 'backbone.net.blocks.4.attn.rel_pos_h', 'backbone.net.blocks.4.attn.rel_pos_w', 'backbone.net.blocks.5.attn.rel_pos_h', 'backbone.net.blocks.5.attn.rel_pos_w', 'backbone.net.blocks.6.attn.rel_pos_h', 'backbone.net.blocks.6.attn.rel_pos_w', 'backbone.net.blocks.7.attn.rel_pos_h', 'backbone.net.blocks.7.attn.rel_pos_w', 'backbone.net.blocks.8.attn.rel_pos_h', 'backbone.net.blocks.8.attn.rel_pos_w', 'backbone.net.blocks.9.attn.rel_pos_h', 'backbone.net.blocks.9.attn.rel_pos_w', 'backbone.net.blocks.10.attn.rel_pos_h', 'backbone.net.blocks.10.attn.rel_pos_w', 'backbone.net.blocks.11.attn.rel_pos_h', 'backbone.net.blocks.11.attn.rel_pos_w', 'proposal_generator.rpn_head.conv.conv0.weight', 'proposal_generator.rpn_head.conv.conv0.bias', 'proposal_generator.rpn_head.conv.conv1.weight', 'proposal_generator.rpn_head.conv.conv1.bias', 'proposal_generator.rpn_head.objectness_logits.weight', 'proposal_generator.rpn_head.objectness_logits.bias', 'proposal_generator.rpn_head.anchor_deltas.weight', 'proposal_generator.rpn_head.anchor_deltas.bias', 'roi_heads.box_head.conv1.weight', 'roi_heads.box_head.conv1.norm.weight', 'roi_heads.box_head.conv1.norm.bias', 'roi_heads.box_head.conv2.weight', 'roi_heads.box_head.conv2.norm.weight', 'roi_heads.box_head.conv2.norm.bias', 'roi_heads.box_head.conv3.weight', 'roi_heads.box_head.conv3.norm.weight', 'roi_heads.box_head.conv3.norm.bias', 'roi_heads.box_head.conv4.weight', 'roi_heads.box_head.conv4.norm.weight', 'roi_heads.box_head.conv4.norm.bias', 'roi_heads.box_head.fc1.weight', 'roi_heads.box_head.fc1.bias', 'roi_heads.box_predictor.cls_score.weight', 'roi_heads.box_predictor.cls_score.bias', 'roi_heads.box_predictor.bbox_pred.weight', 'roi_heads.box_predictor.bbox_pred.bias', 'roi_heads.mask_head.mask_fcn1.weight', 'roi_heads.mask_head.mask_fcn1.norm.weight', 'roi_heads.mask_head.mask_fcn1.norm.bias', 'roi_heads.mask_head.mask_fcn2.weight', 'roi_heads.mask_head.mask_fcn2.norm.weight', 'roi_heads.mask_head.mask_fcn2.norm.bias', 'roi_heads.mask_head.mask_fcn3.weight', 'roi_heads.mask_head.mask_fcn3.norm.weight', 'roi_heads.mask_head.mask_fcn3.norm.bias', 'roi_heads.mask_head.mask_fcn4.weight', 'roi_heads.mask_head.mask_fcn4.norm.weight', 'roi_heads.mask_head.mask_fcn4.norm.bias', 'roi_heads.mask_head.deconv.weight', 'roi_heads.mask_head.deconv.bias', 'roi_heads.mask_head.predictor.weight', 'roi_heads.mask_head.predictor.bias'], unexpected_keys=['backbone.net.cls_token', 'backbone.net.mask_token', 'backbone.net.norm.weight', 'backbone.net.norm.bias'], incorrect_shapes=[])
+[02/28 17:38:48 d2.checkpoint.detection_checkpoint]: [DetectionCheckpointer] Loading from /srv/home/pmorgado/workspace/mae2cl/checkpoints/path1_maefeat_d3t12_compl[0, 0.25]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3/checkpoints/checkpoint_latest_detectron2.pth ...
+[02/28 17:38:48 fvcore.common.checkpoint]: [Checkpointer] Loading from /srv/home/pmorgado/workspace/mae2cl/checkpoints/path1_maefeat_d3t12_compl[0, 0.25]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3/checkpoints/checkpoint_latest_detectron2.pth ...
+checkpoint.get("matching_heuristics", False) False
+checkpoint_state_dict ['cls_token', 'pos_embed', 'mask_token', 'decoder_pos_embed', 'patch_embed.proj.weight', 'patch_embed.proj.bias', 'blocks.0.norm1.weight', 'blocks.0.norm1.bias', 'blocks.0.attn.qkv.weight', 'blocks.0.attn.qkv.bias', 'blocks.0.attn.proj.weight', 'blocks.0.attn.proj.bias', 'blocks.0.norm2.weight', 'blocks.0.norm2.bias', 'blocks.0.mlp.fc1.weight', 'blocks.0.mlp.fc1.bias', 'blocks.0.mlp.fc2.weight', 'blocks.0.mlp.fc2.bias', 'blocks.1.norm1.weight', 'blocks.1.norm1.bias', 'blocks.1.attn.qkv.weight', 'blocks.1.attn.qkv.bias', 'blocks.1.attn.proj.weight', 'blocks.1.attn.proj.bias', 'blocks.1.norm2.weight', 'blocks.1.norm2.bias', 'blocks.1.mlp.fc1.weight', 'blocks.1.mlp.fc1.bias', 'blocks.1.mlp.fc2.weight', 'blocks.1.mlp.fc2.bias', 'blocks.2.norm1.weight', 'blocks.2.norm1.bias', 'blocks.2.attn.qkv.weight', 'blocks.2.attn.qkv.bias', 'blocks.2.attn.proj.weight', 'blocks.2.attn.proj.bias', 'blocks.2.norm2.weight', 'blocks.2.norm2.bias', 'blocks.2.mlp.fc1.weight', 'blocks.2.mlp.fc1.bias', 'blocks.2.mlp.fc2.weight', 'blocks.2.mlp.fc2.bias', 'blocks.3.norm1.weight', 'blocks.3.norm1.bias', 'blocks.3.attn.qkv.weight', 'blocks.3.attn.qkv.bias', 'blocks.3.attn.proj.weight', 'blocks.3.attn.proj.bias', 'blocks.3.norm2.weight', 'blocks.3.norm2.bias', 'blocks.3.mlp.fc1.weight', 'blocks.3.mlp.fc1.bias', 'blocks.3.mlp.fc2.weight', 'blocks.3.mlp.fc2.bias', 'blocks.4.norm1.weight', 'blocks.4.norm1.bias', 'blocks.4.attn.qkv.weight', 'blocks.4.attn.qkv.bias', 'blocks.4.attn.proj.weight', 'blocks.4.attn.proj.bias', 'blocks.4.norm2.weight', 'blocks.4.norm2.bias', 'blocks.4.mlp.fc1.weight', 'blocks.4.mlp.fc1.bias', 'blocks.4.mlp.fc2.weight', 'blocks.4.mlp.fc2.bias', 'blocks.5.norm1.weight', 'blocks.5.norm1.bias', 'blocks.5.attn.qkv.weight', 'blocks.5.attn.qkv.bias', 'blocks.5.attn.proj.weight', 'blocks.5.attn.proj.bias', 'blocks.5.norm2.weight', 'blocks.5.norm2.bias', 'blocks.5.mlp.fc1.weight', 'blocks.5.mlp.fc1.bias', 'blocks.5.mlp.fc2.weight', 'blocks.5.mlp.fc2.bias', 'blocks.6.norm1.weight', 'blocks.6.norm1.bias', 'blocks.6.attn.qkv.weight', 'blocks.6.attn.qkv.bias', 'blocks.6.attn.proj.weight', 'blocks.6.attn.proj.bias', 'blocks.6.norm2.weight', 'blocks.6.norm2.bias', 'blocks.6.mlp.fc1.weight', 'blocks.6.mlp.fc1.bias', 'blocks.6.mlp.fc2.weight', 'blocks.6.mlp.fc2.bias', 'blocks.7.norm1.weight', 'blocks.7.norm1.bias', 'blocks.7.attn.qkv.weight', 'blocks.7.attn.qkv.bias', 'blocks.7.attn.proj.weight', 'blocks.7.attn.proj.bias', 'blocks.7.norm2.weight', 'blocks.7.norm2.bias', 'blocks.7.mlp.fc1.weight', 'blocks.7.mlp.fc1.bias', 'blocks.7.mlp.fc2.weight', 'blocks.7.mlp.fc2.bias', 'blocks.8.norm1.weight', 'blocks.8.norm1.bias', 'blocks.8.attn.qkv.weight', 'blocks.8.attn.qkv.bias', 'blocks.8.attn.proj.weight', 'blocks.8.attn.proj.bias', 'blocks.8.norm2.weight', 'blocks.8.norm2.bias', 'blocks.8.mlp.fc1.weight', 'blocks.8.mlp.fc1.bias', 'blocks.8.mlp.fc2.weight', 'blocks.8.mlp.fc2.bias', 'blocks.9.norm1.weight', 'blocks.9.norm1.bias', 'blocks.9.attn.qkv.weight', 'blocks.9.attn.qkv.bias', 'blocks.9.attn.proj.weight', 'blocks.9.attn.proj.bias', 'blocks.9.norm2.weight', 'blocks.9.norm2.bias', 'blocks.9.mlp.fc1.weight', 'blocks.9.mlp.fc1.bias', 'blocks.9.mlp.fc2.weight', 'blocks.9.mlp.fc2.bias', 'blocks.10.norm1.weight', 'blocks.10.norm1.bias', 'blocks.10.attn.qkv.weight', 'blocks.10.attn.qkv.bias', 'blocks.10.attn.proj.weight', 'blocks.10.attn.proj.bias', 'blocks.10.norm2.weight', 'blocks.10.norm2.bias', 'blocks.10.mlp.fc1.weight', 'blocks.10.mlp.fc1.bias', 'blocks.10.mlp.fc2.weight', 'blocks.10.mlp.fc2.bias', 'blocks.11.norm1.weight', 'blocks.11.norm1.bias', 'blocks.11.attn.qkv.weight', 'blocks.11.attn.qkv.bias', 'blocks.11.attn.proj.weight', 'blocks.11.attn.proj.bias', 'blocks.11.norm2.weight', 'blocks.11.norm2.bias', 'blocks.11.mlp.fc1.weight', 'blocks.11.mlp.fc1.bias', 'blocks.11.mlp.fc2.weight', 'blocks.11.mlp.fc2.bias', 'norm.weight', 'norm.bias', 'decoder_embed.weight', 'decoder_embed.bias', 'decoder_blocks.0.norm1.weight', 'decoder_blocks.0.norm1.bias', 'decoder_blocks.0.attn.qkv.weight', 'decoder_blocks.0.attn.qkv.bias', 'decoder_blocks.0.attn.proj.weight', 'decoder_blocks.0.attn.proj.bias', 'decoder_blocks.0.norm2.weight', 'decoder_blocks.0.norm2.bias', 'decoder_blocks.0.mlp.fc1.weight', 'decoder_blocks.0.mlp.fc1.bias', 'decoder_blocks.0.mlp.fc2.weight', 'decoder_blocks.0.mlp.fc2.bias', 'decoder_blocks.1.norm1.weight', 'decoder_blocks.1.norm1.bias', 'decoder_blocks.1.attn.qkv.weight', 'decoder_blocks.1.attn.qkv.bias', 'decoder_blocks.1.attn.proj.weight', 'decoder_blocks.1.attn.proj.bias', 'decoder_blocks.1.norm2.weight', 'decoder_blocks.1.norm2.bias', 'decoder_blocks.1.mlp.fc1.weight', 'decoder_blocks.1.mlp.fc1.bias', 'decoder_blocks.1.mlp.fc2.weight', 'decoder_blocks.1.mlp.fc2.bias', 'decoder_blocks.2.norm1.weight', 'decoder_blocks.2.norm1.bias', 'decoder_blocks.2.attn.qkv.weight', 'decoder_blocks.2.attn.qkv.bias', 'decoder_blocks.2.attn.proj.weight', 'decoder_blocks.2.attn.proj.bias', 'decoder_blocks.2.norm2.weight', 'decoder_blocks.2.norm2.bias', 'decoder_blocks.2.mlp.fc1.weight', 'decoder_blocks.2.mlp.fc1.bias', 'decoder_blocks.2.mlp.fc2.weight', 'decoder_blocks.2.mlp.fc2.bias', 'decoder_blocks.3.norm1.weight', 'decoder_blocks.3.norm1.bias', 'decoder_blocks.3.attn.qkv.weight', 'decoder_blocks.3.attn.qkv.bias', 'decoder_blocks.3.attn.proj.weight', 'decoder_blocks.3.attn.proj.bias', 'decoder_blocks.3.norm2.weight', 'decoder_blocks.3.norm2.bias', 'decoder_blocks.3.mlp.fc1.weight', 'decoder_blocks.3.mlp.fc1.bias', 'decoder_blocks.3.mlp.fc2.weight', 'decoder_blocks.3.mlp.fc2.bias', 'decoder_blocks.4.norm1.weight', 'decoder_blocks.4.norm1.bias', 'decoder_blocks.4.attn.qkv.weight', 'decoder_blocks.4.attn.qkv.bias', 'decoder_blocks.4.attn.proj.weight', 'decoder_blocks.4.attn.proj.bias', 'decoder_blocks.4.norm2.weight', 'decoder_blocks.4.norm2.bias', 'decoder_blocks.4.mlp.fc1.weight', 'decoder_blocks.4.mlp.fc1.bias', 'decoder_blocks.4.mlp.fc2.weight', 'decoder_blocks.4.mlp.fc2.bias', 'decoder_blocks.5.norm1.weight', 'decoder_blocks.5.norm1.bias', 'decoder_blocks.5.attn.qkv.weight', 'decoder_blocks.5.attn.qkv.bias', 'decoder_blocks.5.attn.proj.weight', 'decoder_blocks.5.attn.proj.bias', 'decoder_blocks.5.norm2.weight', 'decoder_blocks.5.norm2.bias', 'decoder_blocks.5.mlp.fc1.weight', 'decoder_blocks.5.mlp.fc1.bias', 'decoder_blocks.5.mlp.fc2.weight', 'decoder_blocks.5.mlp.fc2.bias', 'decoder_blocks.6.norm1.weight', 'decoder_blocks.6.norm1.bias', 'decoder_blocks.6.attn.qkv.weight', 'decoder_blocks.6.attn.qkv.bias', 'decoder_blocks.6.attn.proj.weight', 'decoder_blocks.6.attn.proj.bias', 'decoder_blocks.6.norm2.weight', 'decoder_blocks.6.norm2.bias', 'decoder_blocks.6.mlp.fc1.weight', 'decoder_blocks.6.mlp.fc1.bias', 'decoder_blocks.6.mlp.fc2.weight', 'decoder_blocks.6.mlp.fc2.bias', 'decoder_blocks.7.norm1.weight', 'decoder_blocks.7.norm1.bias', 'decoder_blocks.7.attn.qkv.weight', 'decoder_blocks.7.attn.qkv.bias', 'decoder_blocks.7.attn.proj.weight', 'decoder_blocks.7.attn.proj.bias', 'decoder_blocks.7.norm2.weight', 'decoder_blocks.7.norm2.bias', 'decoder_blocks.7.mlp.fc1.weight', 'decoder_blocks.7.mlp.fc1.bias', 'decoder_blocks.7.mlp.fc2.weight', 'decoder_blocks.7.mlp.fc2.bias', 'decoder_norm.weight', 'decoder_norm.bias', 'decoder_pred.weight', 'decoder_pred.bias']
+after checkpoint_state_dict ['backbone.net.cls_token', 'backbone.net.pos_embed', 'backbone.net.mask_token', 'backbone.net.patch_embed.proj.weight', 'backbone.net.patch_embed.proj.bias', 'backbone.net.blocks.0.norm1.weight', 'backbone.net.blocks.0.norm1.bias', 'backbone.net.blocks.0.attn.qkv.weight', 'backbone.net.blocks.0.attn.qkv.bias', 'backbone.net.blocks.0.attn.proj.weight', 'backbone.net.blocks.0.attn.proj.bias', 'backbone.net.blocks.0.norm2.weight', 'backbone.net.blocks.0.norm2.bias', 'backbone.net.blocks.0.mlp.fc1.weight', 'backbone.net.blocks.0.mlp.fc1.bias', 'backbone.net.blocks.0.mlp.fc2.weight', 'backbone.net.blocks.0.mlp.fc2.bias', 'backbone.net.blocks.1.norm1.weight', 'backbone.net.blocks.1.norm1.bias', 'backbone.net.blocks.1.attn.qkv.weight', 'backbone.net.blocks.1.attn.qkv.bias', 'backbone.net.blocks.1.attn.proj.weight', 'backbone.net.blocks.1.attn.proj.bias', 'backbone.net.blocks.1.norm2.weight', 'backbone.net.blocks.1.norm2.bias', 'backbone.net.blocks.1.mlp.fc1.weight', 'backbone.net.blocks.1.mlp.fc1.bias', 'backbone.net.blocks.1.mlp.fc2.weight', 'backbone.net.blocks.1.mlp.fc2.bias', 'backbone.net.blocks.2.norm1.weight', 'backbone.net.blocks.2.norm1.bias', 'backbone.net.blocks.2.attn.qkv.weight', 'backbone.net.blocks.2.attn.qkv.bias', 'backbone.net.blocks.2.attn.proj.weight', 'backbone.net.blocks.2.attn.proj.bias', 'backbone.net.blocks.2.norm2.weight', 'backbone.net.blocks.2.norm2.bias', 'backbone.net.blocks.2.mlp.fc1.weight', 'backbone.net.blocks.2.mlp.fc1.bias', 'backbone.net.blocks.2.mlp.fc2.weight', 'backbone.net.blocks.2.mlp.fc2.bias', 'backbone.net.blocks.3.norm1.weight', 'backbone.net.blocks.3.norm1.bias', 'backbone.net.blocks.3.attn.qkv.weight', 'backbone.net.blocks.3.attn.qkv.bias', 'backbone.net.blocks.3.attn.proj.weight', 'backbone.net.blocks.3.attn.proj.bias', 'backbone.net.blocks.3.norm2.weight', 'backbone.net.blocks.3.norm2.bias', 'backbone.net.blocks.3.mlp.fc1.weight', 'backbone.net.blocks.3.mlp.fc1.bias', 'backbone.net.blocks.3.mlp.fc2.weight', 'backbone.net.blocks.3.mlp.fc2.bias', 'backbone.net.blocks.4.norm1.weight', 'backbone.net.blocks.4.norm1.bias', 'backbone.net.blocks.4.attn.qkv.weight', 'backbone.net.blocks.4.attn.qkv.bias', 'backbone.net.blocks.4.attn.proj.weight', 'backbone.net.blocks.4.attn.proj.bias', 'backbone.net.blocks.4.norm2.weight', 'backbone.net.blocks.4.norm2.bias', 'backbone.net.blocks.4.mlp.fc1.weight', 'backbone.net.blocks.4.mlp.fc1.bias', 'backbone.net.blocks.4.mlp.fc2.weight', 'backbone.net.blocks.4.mlp.fc2.bias', 'backbone.net.blocks.5.norm1.weight', 'backbone.net.blocks.5.norm1.bias', 'backbone.net.blocks.5.attn.qkv.weight', 'backbone.net.blocks.5.attn.qkv.bias', 'backbone.net.blocks.5.attn.proj.weight', 'backbone.net.blocks.5.attn.proj.bias', 'backbone.net.blocks.5.norm2.weight', 'backbone.net.blocks.5.norm2.bias', 'backbone.net.blocks.5.mlp.fc1.weight', 'backbone.net.blocks.5.mlp.fc1.bias', 'backbone.net.blocks.5.mlp.fc2.weight', 'backbone.net.blocks.5.mlp.fc2.bias', 'backbone.net.blocks.6.norm1.weight', 'backbone.net.blocks.6.norm1.bias', 'backbone.net.blocks.6.attn.qkv.weight', 'backbone.net.blocks.6.attn.qkv.bias', 'backbone.net.blocks.6.attn.proj.weight', 'backbone.net.blocks.6.attn.proj.bias', 'backbone.net.blocks.6.norm2.weight', 'backbone.net.blocks.6.norm2.bias', 'backbone.net.blocks.6.mlp.fc1.weight', 'backbone.net.blocks.6.mlp.fc1.bias', 'backbone.net.blocks.6.mlp.fc2.weight', 'backbone.net.blocks.6.mlp.fc2.bias', 'backbone.net.blocks.7.norm1.weight', 'backbone.net.blocks.7.norm1.bias', 'backbone.net.blocks.7.attn.qkv.weight', 'backbone.net.blocks.7.attn.qkv.bias', 'backbone.net.blocks.7.attn.proj.weight', 'backbone.net.blocks.7.attn.proj.bias', 'backbone.net.blocks.7.norm2.weight', 'backbone.net.blocks.7.norm2.bias', 'backbone.net.blocks.7.mlp.fc1.weight', 'backbone.net.blocks.7.mlp.fc1.bias', 'backbone.net.blocks.7.mlp.fc2.weight', 'backbone.net.blocks.7.mlp.fc2.bias', 'backbone.net.blocks.8.norm1.weight', 'backbone.net.blocks.8.norm1.bias', 'backbone.net.blocks.8.attn.qkv.weight', 'backbone.net.blocks.8.attn.qkv.bias', 'backbone.net.blocks.8.attn.proj.weight', 'backbone.net.blocks.8.attn.proj.bias', 'backbone.net.blocks.8.norm2.weight', 'backbone.net.blocks.8.norm2.bias', 'backbone.net.blocks.8.mlp.fc1.weight', 'backbone.net.blocks.8.mlp.fc1.bias', 'backbone.net.blocks.8.mlp.fc2.weight', 'backbone.net.blocks.8.mlp.fc2.bias', 'backbone.net.blocks.9.norm1.weight', 'backbone.net.blocks.9.norm1.bias', 'backbone.net.blocks.9.attn.qkv.weight', 'backbone.net.blocks.9.attn.qkv.bias', 'backbone.net.blocks.9.attn.proj.weight', 'backbone.net.blocks.9.attn.proj.bias', 'backbone.net.blocks.9.norm2.weight', 'backbone.net.blocks.9.norm2.bias', 'backbone.net.blocks.9.mlp.fc1.weight', 'backbone.net.blocks.9.mlp.fc1.bias', 'backbone.net.blocks.9.mlp.fc2.weight', 'backbone.net.blocks.9.mlp.fc2.bias', 'backbone.net.blocks.10.norm1.weight', 'backbone.net.blocks.10.norm1.bias', 'backbone.net.blocks.10.attn.qkv.weight', 'backbone.net.blocks.10.attn.qkv.bias', 'backbone.net.blocks.10.attn.proj.weight', 'backbone.net.blocks.10.attn.proj.bias', 'backbone.net.blocks.10.norm2.weight', 'backbone.net.blocks.10.norm2.bias', 'backbone.net.blocks.10.mlp.fc1.weight', 'backbone.net.blocks.10.mlp.fc1.bias', 'backbone.net.blocks.10.mlp.fc2.weight', 'backbone.net.blocks.10.mlp.fc2.bias', 'backbone.net.blocks.11.norm1.weight', 'backbone.net.blocks.11.norm1.bias', 'backbone.net.blocks.11.attn.qkv.weight', 'backbone.net.blocks.11.attn.qkv.bias', 'backbone.net.blocks.11.attn.proj.weight', 'backbone.net.blocks.11.attn.proj.bias', 'backbone.net.blocks.11.norm2.weight', 'backbone.net.blocks.11.norm2.bias', 'backbone.net.blocks.11.mlp.fc1.weight', 'backbone.net.blocks.11.mlp.fc1.bias', 'backbone.net.blocks.11.mlp.fc2.weight', 'backbone.net.blocks.11.mlp.fc2.bias', 'backbone.net.norm.weight', 'backbone.net.norm.bias']
+incompatible _IncompatibleKeys(missing_keys=['backbone.simfp_2.0.weight', 'backbone.simfp_2.0.bias', 'backbone.simfp_2.1.weight', 'backbone.simfp_2.1.bias', 'backbone.simfp_2.3.weight', 'backbone.simfp_2.3.bias', 'backbone.simfp_2.4.weight', 'backbone.simfp_2.4.norm.weight', 'backbone.simfp_2.4.norm.bias', 'backbone.simfp_2.5.weight', 'backbone.simfp_2.5.norm.weight', 'backbone.simfp_2.5.norm.bias', 'backbone.simfp_3.0.weight', 'backbone.simfp_3.0.bias', 'backbone.simfp_3.1.weight', 'backbone.simfp_3.1.norm.weight', 'backbone.simfp_3.1.norm.bias', 'backbone.simfp_3.2.weight', 'backbone.simfp_3.2.norm.weight', 'backbone.simfp_3.2.norm.bias', 'backbone.simfp_4.0.weight', 'backbone.simfp_4.0.norm.weight', 'backbone.simfp_4.0.norm.bias', 'backbone.simfp_4.1.weight', 'backbone.simfp_4.1.norm.weight', 'backbone.simfp_4.1.norm.bias', 'backbone.simfp_5.1.weight', 'backbone.simfp_5.1.norm.weight', 'backbone.simfp_5.1.norm.bias', 'backbone.simfp_5.2.weight', 'backbone.simfp_5.2.norm.weight', 'backbone.simfp_5.2.norm.bias', 'backbone.net.blocks.0.attn.rel_pos_h', 'backbone.net.blocks.0.attn.rel_pos_w', 'backbone.net.blocks.1.attn.rel_pos_h', 'backbone.net.blocks.1.attn.rel_pos_w', 'backbone.net.blocks.2.attn.rel_pos_h', 'backbone.net.blocks.2.attn.rel_pos_w', 'backbone.net.blocks.3.attn.rel_pos_h', 'backbone.net.blocks.3.attn.rel_pos_w', 'backbone.net.blocks.4.attn.rel_pos_h', 'backbone.net.blocks.4.attn.rel_pos_w', 'backbone.net.blocks.5.attn.rel_pos_h', 'backbone.net.blocks.5.attn.rel_pos_w', 'backbone.net.blocks.6.attn.rel_pos_h', 'backbone.net.blocks.6.attn.rel_pos_w', 'backbone.net.blocks.7.attn.rel_pos_h', 'backbone.net.blocks.7.attn.rel_pos_w', 'backbone.net.blocks.8.attn.rel_pos_h', 'backbone.net.blocks.8.attn.rel_pos_w', 'backbone.net.blocks.9.attn.rel_pos_h', 'backbone.net.blocks.9.attn.rel_pos_w', 'backbone.net.blocks.10.attn.rel_pos_h', 'backbone.net.blocks.10.attn.rel_pos_w', 'backbone.net.blocks.11.attn.rel_pos_h', 'backbone.net.blocks.11.attn.rel_pos_w', 'proposal_generator.rpn_head.conv.conv0.weight', 'proposal_generator.rpn_head.conv.conv0.bias', 'proposal_generator.rpn_head.conv.conv1.weight', 'proposal_generator.rpn_head.conv.conv1.bias', 'proposal_generator.rpn_head.objectness_logits.weight', 'proposal_generator.rpn_head.objectness_logits.bias', 'proposal_generator.rpn_head.anchor_deltas.weight', 'proposal_generator.rpn_head.anchor_deltas.bias', 'roi_heads.box_head.conv1.weight', 'roi_heads.box_head.conv1.norm.weight', 'roi_heads.box_head.conv1.norm.bias', 'roi_heads.box_head.conv2.weight', 'roi_heads.box_head.conv2.norm.weight', 'roi_heads.box_head.conv2.norm.bias', 'roi_heads.box_head.conv3.weight', 'roi_heads.box_head.conv3.norm.weight', 'roi_heads.box_head.conv3.norm.bias', 'roi_heads.box_head.conv4.weight', 'roi_heads.box_head.conv4.norm.weight', 'roi_heads.box_head.conv4.norm.bias', 'roi_heads.box_head.fc1.weight', 'roi_heads.box_head.fc1.bias', 'roi_heads.box_predictor.cls_score.weight', 'roi_heads.box_predictor.cls_score.bias', 'roi_heads.box_predictor.bbox_pred.weight', 'roi_heads.box_predictor.bbox_pred.bias', 'roi_heads.mask_head.mask_fcn1.weight', 'roi_heads.mask_head.mask_fcn1.norm.weight', 'roi_heads.mask_head.mask_fcn1.norm.bias', 'roi_heads.mask_head.mask_fcn2.weight', 'roi_heads.mask_head.mask_fcn2.norm.weight', 'roi_heads.mask_head.mask_fcn2.norm.bias', 'roi_heads.mask_head.mask_fcn3.weight', 'roi_heads.mask_head.mask_fcn3.norm.weight', 'roi_heads.mask_head.mask_fcn3.norm.bias', 'roi_heads.mask_head.mask_fcn4.weight', 'roi_heads.mask_head.mask_fcn4.norm.weight', 'roi_heads.mask_head.mask_fcn4.norm.bias', 'roi_heads.mask_head.deconv.weight', 'roi_heads.mask_head.deconv.bias', 'roi_heads.mask_head.predictor.weight', 'roi_heads.mask_head.predictor.bias'], unexpected_keys=['backbone.net.cls_token', 'backbone.net.mask_token', 'backbone.net.norm.weight', 'backbone.net.norm.bias'], incorrect_shapes=[])
+WARNING [02/28 17:38:48 fvcore.common.checkpoint]: Some model parameters or buffers are not found in the checkpoint:
+backbone.net.blocks.0.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.1.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.10.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.11.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.2.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.3.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.4.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.5.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.6.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.7.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.8.attn.{rel_pos_h, rel_pos_w}
+backbone.net.blocks.9.attn.{rel_pos_h, rel_pos_w}
+backbone.simfp_2.0.{bias, weight}
+backbone.simfp_2.1.{bias, weight}
+backbone.simfp_2.3.{bias, weight}
+backbone.simfp_2.4.norm.{bias, weight}
+backbone.simfp_2.4.weight
+backbone.simfp_2.5.norm.{bias, weight}
+backbone.simfp_2.5.weight
+backbone.simfp_3.0.{bias, weight}
+backbone.simfp_3.1.norm.{bias, weight}
+backbone.simfp_3.1.weight
+backbone.simfp_3.2.norm.{bias, weight}
+backbone.simfp_3.2.weight
+backbone.simfp_4.0.norm.{bias, weight}
+backbone.simfp_4.0.weight
+backbone.simfp_4.1.norm.{bias, weight}
+backbone.simfp_4.1.weight
+backbone.simfp_5.1.norm.{bias, weight}
+backbone.simfp_5.1.weight
+backbone.simfp_5.2.norm.{bias, weight}
+backbone.simfp_5.2.weight
+proposal_generator.rpn_head.anchor_deltas.{bias, weight}
+proposal_generator.rpn_head.conv.conv0.{bias, weight}
+proposal_generator.rpn_head.conv.conv1.{bias, weight}
+proposal_generator.rpn_head.objectness_logits.{bias, weight}
+roi_heads.box_head.conv1.norm.{bias, weight}
+roi_heads.box_head.conv1.weight
+roi_heads.box_head.conv2.norm.{bias, weight}
+roi_heads.box_head.conv2.weight
+roi_heads.box_head.conv3.norm.{bias, weight}
+roi_heads.box_head.conv3.weight
+roi_heads.box_head.conv4.norm.{bias, weight}
+roi_heads.box_head.conv4.weight
+roi_heads.box_head.fc1.{bias, weight}
+roi_heads.box_predictor.bbox_pred.{bias, weight}
+roi_heads.box_predictor.cls_score.{bias, weight}
+roi_heads.mask_head.deconv.{bias, weight}
+roi_heads.mask_head.mask_fcn1.norm.{bias, weight}
+roi_heads.mask_head.mask_fcn1.weight
+roi_heads.mask_head.mask_fcn2.norm.{bias, weight}
+roi_heads.mask_head.mask_fcn2.weight
+roi_heads.mask_head.mask_fcn3.norm.{bias, weight}
+roi_heads.mask_head.mask_fcn3.weight
+roi_heads.mask_head.mask_fcn4.norm.{bias, weight}
+roi_heads.mask_head.mask_fcn4.weight
+roi_heads.mask_head.predictor.{bias, weight}
+WARNING [02/28 17:38:48 fvcore.common.checkpoint]: The checkpoint state_dict contains keys that are not used by the model:
+  backbone.net.{cls_token, mask_token}
+  backbone.net.norm.{bias, weight}
+[02/28 17:38:48 d2.engine.train_loop]: Starting training from iteration 0
+[02/28 17:39:17 d2.utils.events]:  eta: 13:02:40  iter: 19  total_loss: 5.789  loss_cls: 4.029  loss_box_reg: 0.06285  loss_mask: 0.6931  loss_rpn_cls: 0.6953  loss_rpn_loc: 0.2835  time: 0.7497  last_time: 0.7094  data_time: 0.5850  last_data_time: 0.0209   lr: 7.6924e-06  max_mem: 14375M
+[02/28 17:39:33 d2.utils.events]:  eta: 13:02:25  iter: 39  total_loss: 2.498  loss_cls: 0.6847  loss_box_reg: 0.09073  loss_mask: 0.6928  loss_rpn_cls: 0.6802  loss_rpn_loc: 0.2756  time: 0.7584  last_time: 0.7757  data_time: 0.0868  last_data_time: 0.1011   lr: 1.5684e-05  max_mem: 14536M
+[02/28 17:39:48 d2.utils.events]:  eta: 13:20:33  iter: 59  total_loss: 2.15  loss_cls: 0.4419  loss_box_reg: 0.167  loss_mask: 0.6922  loss_rpn_cls: 0.6071  loss_rpn_loc: 0.2765  time: 0.7669  last_time: 0.8540  data_time: 0.0749  last_data_time: 0.1225   lr: 2.3676e-05  max_mem: 15621M
+[02/28 17:40:04 d2.utils.events]:  eta: 13:30:59  iter: 79  total_loss: 2.047  loss_cls: 0.4385  loss_box_reg: 0.2018  loss_mask: 0.6904  loss_rpn_cls: 0.431  loss_rpn_loc: 0.2752  time: 0.7773  last_time: 0.8068  data_time: 0.0777  last_data_time: 0.0968   lr: 3.1668e-05  max_mem: 15621M
+[02/28 17:40:20 d2.utils.events]:  eta: 13:29:51  iter: 99  total_loss: 1.957  loss_cls: 0.4603  loss_box_reg: 0.2224  loss_mask: 0.6878  loss_rpn_cls: 0.3157  loss_rpn_loc: 0.2629  time: 0.7790  last_time: 0.7684  data_time: 0.0645  last_data_time: 0.0093   lr: 3.966e-05  max_mem: 15621M
+[02/28 17:40:36 d2.utils.events]:  eta: 13:32:03  iter: 119  total_loss: 1.91  loss_cls: 0.4384  loss_box_reg: 0.2336  loss_mask: 0.683  loss_rpn_cls: 0.276  loss_rpn_loc: 0.2655  time: 0.7827  last_time: 0.7731  data_time: 0.0756  last_data_time: 0.0617   lr: 4.7652e-05  max_mem: 15621M
+[02/28 17:40:52 d2.utils.events]:  eta: 13:31:47  iter: 139  total_loss: 1.572  loss_cls: 0.3023  loss_box_reg: 0.1398  loss_mask: 0.6698  loss_rpn_cls: 0.2252  loss_rpn_loc: 0.2447  time: 0.7806  last_time: 0.7052  data_time: 0.0746  last_data_time: 0.0093   lr: 5.5644e-05  max_mem: 15621M
+[02/28 17:41:07 d2.utils.events]:  eta: 13:32:41  iter: 159  total_loss: 1.545  loss_cls: 0.3346  loss_box_reg: 0.1674  loss_mask: 0.6519  loss_rpn_cls: 0.185  loss_rpn_loc: 0.2125  time: 0.7811  last_time: 0.7463  data_time: 0.0710  last_data_time: 0.0172   lr: 6.3636e-05  max_mem: 15621M
+[02/28 17:41:23 d2.utils.events]:  eta: 13:33:06  iter: 179  total_loss: 1.597  loss_cls: 0.3604  loss_box_reg: 0.1883  loss_mask: 0.6255  loss_rpn_cls: 0.1862  loss_rpn_loc: 0.2343  time: 0.7817  last_time: 0.7212  data_time: 0.0745  last_data_time: 0.0077   lr: 7.1628e-05  max_mem: 15621M
+[02/28 17:41:39 d2.utils.events]:  eta: 13:35:41  iter: 199  total_loss: 1.615  loss_cls: 0.3736  loss_box_reg: 0.1841  loss_mask: 0.6046  loss_rpn_cls: 0.1803  loss_rpn_loc: 0.2487  time: 0.7830  last_time: 0.8311  data_time: 0.0782  last_data_time: 0.0983   lr: 7.962e-05  max_mem: 15621M
+[02/28 17:41:54 d2.utils.events]:  eta: 13:35:25  iter: 219  total_loss: 1.641  loss_cls: 0.3825  loss_box_reg: 0.197  loss_mask: 0.5876  loss_rpn_cls: 0.1936  loss_rpn_loc: 0.233  time: 0.7825  last_time: 0.8370  data_time: 0.0608  last_data_time: 0.0631   lr: 8.7612e-05  max_mem: 15621M
+[02/28 17:42:10 d2.utils.events]:  eta: 13:34:31  iter: 239  total_loss: 1.505  loss_cls: 0.3579  loss_box_reg: 0.2058  loss_mask: 0.5711  loss_rpn_cls: 0.1807  loss_rpn_loc: 0.2241  time: 0.7833  last_time: 0.8098  data_time: 0.0882  last_data_time: 0.0939   lr: 9.5604e-05  max_mem: 15621M
+[02/28 17:42:26 d2.utils.events]:  eta: 13:34:16  iter: 259  total_loss: 1.543  loss_cls: 0.3667  loss_box_reg: 0.1964  loss_mask: 0.5593  loss_rpn_cls: 0.1677  loss_rpn_loc: 0.2367  time: 0.7840  last_time: 0.8148  data_time: 0.0909  last_data_time: 0.1172   lr: 0.0001  max_mem: 15621M
+[02/28 17:42:42 d2.utils.events]:  eta: 13:35:06  iter: 279  total_loss: 1.544  loss_cls: 0.3889  loss_box_reg: 0.2161  loss_mask: 0.5487  loss_rpn_cls: 0.1635  loss_rpn_loc: 0.2247  time: 0.7847  last_time: 0.8349  data_time: 0.0907  last_data_time: 0.0502   lr: 0.0001  max_mem: 15621M
+[02/28 17:42:58 d2.utils.events]:  eta: 13:36:04  iter: 299  total_loss: 1.502  loss_cls: 0.3734  loss_box_reg: 0.2157  loss_mask: 0.5386  loss_rpn_cls: 0.167  loss_rpn_loc: 0.2034  time: 0.7852  last_time: 0.7932  data_time: 0.0884  last_data_time: 0.0685   lr: 0.0001  max_mem: 15626M
+[02/28 17:43:14 d2.utils.events]:  eta: 13:35:49  iter: 319  total_loss: 1.575  loss_cls: 0.3836  loss_box_reg: 0.227  loss_mask: 0.5246  loss_rpn_cls: 0.1929  loss_rpn_loc: 0.2429  time: 0.7856  last_time: 0.7804  data_time: 0.0842  last_data_time: 0.0776   lr: 0.0001  max_mem: 15626M
+[02/28 17:43:30 d2.utils.events]:  eta: 13:35:33  iter: 339  total_loss: 1.539  loss_cls: 0.3901  loss_box_reg: 0.2407  loss_mask: 0.5319  loss_rpn_cls: 0.1825  loss_rpn_loc: 0.2398  time: 0.7860  last_time: 0.8501  data_time: 0.0861  last_data_time: 0.1968   lr: 0.0001  max_mem: 15718M
+[02/28 17:43:45 d2.utils.events]:  eta: 13:35:17  iter: 359  total_loss: 1.528  loss_cls: 0.3883  loss_box_reg: 0.2402  loss_mask: 0.5197  loss_rpn_cls: 0.1568  loss_rpn_loc: 0.2163  time: 0.7861  last_time: 0.7858  data_time: 0.0832  last_data_time: 0.0789   lr: 0.0001  max_mem: 15718M
+[02/28 17:44:02 d2.utils.events]:  eta: 13:37:33  iter: 379  total_loss: 1.537  loss_cls: 0.3938  loss_box_reg: 0.2488  loss_mask: 0.5084  loss_rpn_cls: 0.1595  loss_rpn_loc: 0.2512  time: 0.7876  last_time: 0.8644  data_time: 0.0950  last_data_time: 0.1227   lr: 0.0001  max_mem: 15718M
+[02/28 17:44:18 d2.utils.events]:  eta: 13:37:27  iter: 399  total_loss: 1.477  loss_cls: 0.3792  loss_box_reg: 0.2374  loss_mask: 0.5005  loss_rpn_cls: 0.1529  loss_rpn_loc: 0.2561  time: 0.7883  last_time: 0.7568  data_time: 0.1046  last_data_time: 0.0901   lr: 0.0001  max_mem: 15718M
+[02/28 17:44:34 d2.utils.events]:  eta: 13:38:20  iter: 419  total_loss: 1.505  loss_cls: 0.3897  loss_box_reg: 0.2367  loss_mask: 0.4999  loss_rpn_cls: 0.1502  loss_rpn_loc: 0.2551  time: 0.7892  last_time: 0.8718  data_time: 0.1031  last_data_time: 0.1390   lr: 0.0001  max_mem: 15835M
+[02/28 17:44:50 d2.utils.events]:  eta: 13:38:19  iter: 439  total_loss: 1.496  loss_cls: 0.3831  loss_box_reg: 0.2431  loss_mask: 0.5077  loss_rpn_cls: 0.1509  loss_rpn_loc: 0.2194  time: 0.7895  last_time: 0.8353  data_time: 0.0956  last_data_time: 0.1633   lr: 0.0001  max_mem: 16131M
+[02/28 17:45:06 d2.utils.events]:  eta: 13:38:08  iter: 459  total_loss: 1.528  loss_cls: 0.3791  loss_box_reg: 0.2465  loss_mask: 0.4851  loss_rpn_cls: 0.1594  loss_rpn_loc: 0.2374  time: 0.7897  last_time: 0.8432  data_time: 0.1090  last_data_time: 0.1494   lr: 0.0001  max_mem: 16131M
+[02/28 17:45:22 d2.utils.events]:  eta: 13:37:55  iter: 479  total_loss: 1.487  loss_cls: 0.3838  loss_box_reg: 0.2588  loss_mask: 0.4839  loss_rpn_cls: 0.1479  loss_rpn_loc: 0.2313  time: 0.7899  last_time: 0.8183  data_time: 0.0932  last_data_time: 0.1205   lr: 0.0001  max_mem: 16131M
+[02/28 17:45:38 d2.utils.events]:  eta: 13:37:40  iter: 499  total_loss: 1.405  loss_cls: 0.3493  loss_box_reg: 0.2325  loss_mask: 0.4775  loss_rpn_cls: 0.1437  loss_rpn_loc: 0.1928  time: 0.7903  last_time: 0.7538  data_time: 0.1162  last_data_time: 0.1135   lr: 0.0001  max_mem: 16131M
+[02/28 17:45:54 d2.utils.events]:  eta: 13:37:30  iter: 519  total_loss: 1.435  loss_cls: 0.355  loss_box_reg: 0.2346  loss_mask: 0.4721  loss_rpn_cls: 0.1473  loss_rpn_loc: 0.2262  time: 0.7907  last_time: 0.7500  data_time: 0.0993  last_data_time: 0.0703   lr: 0.0001  max_mem: 16373M
+[02/28 17:46:10 d2.utils.events]:  eta: 13:37:18  iter: 539  total_loss: 1.429  loss_cls: 0.3544  loss_box_reg: 0.2375  loss_mask: 0.4787  loss_rpn_cls: 0.1376  loss_rpn_loc: 0.2061  time: 0.7915  last_time: 0.8420  data_time: 0.1079  last_data_time: 0.0953   lr: 0.0001  max_mem: 16373M
+[02/28 17:46:26 d2.utils.events]:  eta: 13:37:35  iter: 559  total_loss: 1.473  loss_cls: 0.3867  loss_box_reg: 0.2537  loss_mask: 0.4782  loss_rpn_cls: 0.1428  loss_rpn_loc: 0.2239  time: 0.7917  last_time: 0.7425  data_time: 0.1079  last_data_time: 0.0460   lr: 0.0001  max_mem: 16373M
+[02/28 17:46:42 d2.utils.events]:  eta: 13:37:31  iter: 579  total_loss: 1.526  loss_cls: 0.3812  loss_box_reg: 0.2635  loss_mask: 0.4724  loss_rpn_cls: 0.1451  loss_rpn_loc: 0.2421  time: 0.7930  last_time: 0.7186  data_time: 0.1379  last_data_time: 0.0649   lr: 0.0001  max_mem: 16441M
+[02/28 17:46:59 d2.utils.events]:  eta: 13:37:32  iter: 599  total_loss: 1.424  loss_cls: 0.3482  loss_box_reg: 0.2387  loss_mask: 0.4761  loss_rpn_cls: 0.149  loss_rpn_loc: 0.224  time: 0.7933  last_time: 0.7537  data_time: 0.0913  last_data_time: 0.0136   lr: 0.0001  max_mem: 16441M
+[02/28 17:47:14 d2.utils.events]:  eta: 13:37:09  iter: 619  total_loss: 1.439  loss_cls: 0.3527  loss_box_reg: 0.2441  loss_mask: 0.4653  loss_rpn_cls: 0.1431  loss_rpn_loc: 0.2145  time: 0.7932  last_time: 0.7396  data_time: 0.0921  last_data_time: 0.0894   lr: 0.0001  max_mem: 16441M
+[02/28 17:47:31 d2.utils.events]:  eta: 13:37:52  iter: 639  total_loss: 1.463  loss_cls: 0.3651  loss_box_reg: 0.2494  loss_mask: 0.4749  loss_rpn_cls: 0.1279  loss_rpn_loc: 0.2349  time: 0.7937  last_time: 0.7426  data_time: 0.0931  last_data_time: 0.0044   lr: 0.0001  max_mem: 16441M
+[02/28 17:47:47 d2.utils.events]:  eta: 13:37:55  iter: 659  total_loss: 1.406  loss_cls: 0.3506  loss_box_reg: 0.248  loss_mask: 0.4668  loss_rpn_cls: 0.1261  loss_rpn_loc: 0.1963  time: 0.7939  last_time: 0.8560  data_time: 0.0938  last_data_time: 0.1681   lr: 0.0001  max_mem: 16441M
+[02/28 17:48:03 d2.utils.events]:  eta: 13:38:21  iter: 679  total_loss: 1.449  loss_cls: 0.3825  loss_box_reg: 0.2637  loss_mask: 0.4768  loss_rpn_cls: 0.1367  loss_rpn_loc: 0.2011  time: 0.7944  last_time: 0.7630  data_time: 0.0890  last_data_time: 0.0236   lr: 0.0001  max_mem: 16441M
+[02/28 17:48:19 d2.utils.events]:  eta: 13:39:18  iter: 699  total_loss: 1.416  loss_cls: 0.3461  loss_box_reg: 0.2403  loss_mask: 0.4662  loss_rpn_cls: 0.1314  loss_rpn_loc: 0.2128  time: 0.7951  last_time: 0.8263  data_time: 0.1125  last_data_time: 0.1316   lr: 0.0001  max_mem: 16441M
+[02/28 17:48:35 d2.utils.events]:  eta: 13:40:10  iter: 719  total_loss: 1.364  loss_cls: 0.3609  loss_box_reg: 0.2536  loss_mask: 0.464  loss_rpn_cls: 0.1212  loss_rpn_loc: 0.2094  time: 0.7954  last_time: 0.8106  data_time: 0.0826  last_data_time: 0.0777   lr: 0.0001  max_mem: 16441M
+[02/28 17:48:52 d2.utils.events]:  eta: 13:39:13  iter: 739  total_loss: 1.405  loss_cls: 0.3618  loss_box_reg: 0.2472  loss_mask: 0.4489  loss_rpn_cls: 0.1331  loss_rpn_loc: 0.2039  time: 0.7958  last_time: 0.9121  data_time: 0.0939  last_data_time: 0.2228   lr: 0.0001  max_mem: 16441M
+[02/28 17:49:08 d2.utils.events]:  eta: 13:39:38  iter: 759  total_loss: 1.384  loss_cls: 0.3354  loss_box_reg: 0.2344  loss_mask: 0.4566  loss_rpn_cls: 0.1354  loss_rpn_loc: 0.225  time: 0.7959  last_time: 0.8845  data_time: 0.0921  last_data_time: 0.1287   lr: 0.0001  max_mem: 16441M
+[02/28 17:49:24 d2.utils.events]:  eta: 13:39:22  iter: 779  total_loss: 1.452  loss_cls: 0.3615  loss_box_reg: 0.2504  loss_mask: 0.4552  loss_rpn_cls: 0.1345  loss_rpn_loc: 0.2133  time: 0.7963  last_time: 0.7994  data_time: 0.1084  last_data_time: 0.1510   lr: 0.0001  max_mem: 16441M
+[02/28 17:49:40 d2.utils.events]:  eta: 13:39:45  iter: 799  total_loss: 1.411  loss_cls: 0.3588  loss_box_reg: 0.255  loss_mask: 0.4509  loss_rpn_cls: 0.1294  loss_rpn_loc: 0.2222  time: 0.7967  last_time: 0.8287  data_time: 0.1126  last_data_time: 0.1246   lr: 0.0001  max_mem: 16441M
+[02/28 17:49:56 d2.utils.events]:  eta: 13:39:21  iter: 819  total_loss: 1.353  loss_cls: 0.358  loss_box_reg: 0.2489  loss_mask: 0.4585  loss_rpn_cls: 0.1237  loss_rpn_loc: 0.1899  time: 0.7967  last_time: 0.8230  data_time: 0.0900  last_data_time: 0.0226   lr: 0.0001  max_mem: 16441M
+[02/28 17:50:12 d2.utils.events]:  eta: 13:39:38  iter: 839  total_loss: 1.368  loss_cls: 0.3528  loss_box_reg: 0.2521  loss_mask: 0.4326  loss_rpn_cls: 0.1288  loss_rpn_loc: 0.1999  time: 0.7972  last_time: 0.7654  data_time: 0.1218  last_data_time: 0.1018   lr: 0.0001  max_mem: 16441M
+[02/28 17:50:28 d2.utils.events]:  eta: 13:39:22  iter: 859  total_loss: 1.346  loss_cls: 0.3406  loss_box_reg: 0.2429  loss_mask: 0.4538  loss_rpn_cls: 0.1224  loss_rpn_loc: 0.2087  time: 0.7970  last_time: 0.8045  data_time: 0.0899  last_data_time: 0.0210   lr: 0.0001  max_mem: 16441M
+[02/28 17:50:44 d2.utils.events]:  eta: 13:39:06  iter: 879  total_loss: 1.348  loss_cls: 0.335  loss_box_reg: 0.237  loss_mask: 0.4359  loss_rpn_cls: 0.1216  loss_rpn_loc: 0.2043  time: 0.7971  last_time: 0.7993  data_time: 0.0958  last_data_time: 0.0905   lr: 0.0001  max_mem: 16441M
+[02/28 17:51:00 d2.utils.events]:  eta: 13:38:51  iter: 899  total_loss: 1.406  loss_cls: 0.3544  loss_box_reg: 0.2617  loss_mask: 0.4383  loss_rpn_cls: 0.1348  loss_rpn_loc: 0.2207  time: 0.7970  last_time: 0.8119  data_time: 0.0844  last_data_time: 0.1422   lr: 0.0001  max_mem: 16441M
+[02/28 17:51:16 d2.utils.events]:  eta: 13:39:32  iter: 919  total_loss: 1.383  loss_cls: 0.3382  loss_box_reg: 0.257  loss_mask: 0.4429  loss_rpn_cls: 0.1263  loss_rpn_loc: 0.1784  time: 0.7975  last_time: 0.8204  data_time: 0.0996  last_data_time: 0.0936   lr: 0.0001  max_mem: 16441M
+[02/28 17:51:33 d2.utils.events]:  eta: 13:39:35  iter: 939  total_loss: 1.4  loss_cls: 0.3508  loss_box_reg: 0.2437  loss_mask: 0.4412  loss_rpn_cls: 0.1265  loss_rpn_loc: 0.2318  time: 0.7977  last_time: 0.8582  data_time: 0.1023  last_data_time: 0.1375   lr: 0.0001  max_mem: 16441M
+[02/28 17:51:49 d2.utils.events]:  eta: 13:39:22  iter: 959  total_loss: 1.365  loss_cls: 0.3414  loss_box_reg: 0.2642  loss_mask: 0.4469  loss_rpn_cls: 0.1257  loss_rpn_loc: 0.2065  time: 0.7977  last_time: 0.8079  data_time: 0.0932  last_data_time: 0.0984   lr: 0.0001  max_mem: 16441M
+[02/28 17:52:05 d2.utils.events]:  eta: 13:38:55  iter: 979  total_loss: 1.373  loss_cls: 0.334  loss_box_reg: 0.2506  loss_mask: 0.4339  loss_rpn_cls: 0.1333  loss_rpn_loc: 0.207  time: 0.7977  last_time: 0.8133  data_time: 0.0880  last_data_time: 0.0795   lr: 0.0001  max_mem: 16441M
+[02/28 17:52:21 d2.utils.events]:  eta: 13:39:22  iter: 999  total_loss: 1.407  loss_cls: 0.3587  loss_box_reg: 0.2613  loss_mask: 0.4408  loss_rpn_cls: 0.127  loss_rpn_loc: 0.1974  time: 0.7982  last_time: 0.8098  data_time: 0.1165  last_data_time: 0.1042   lr: 0.0001  max_mem: 16543M
+[02/28 17:52:37 d2.utils.events]:  eta: 13:40:17  iter: 1019  total_loss: 1.333  loss_cls: 0.3394  loss_box_reg: 0.2367  loss_mask: 0.4389  loss_rpn_cls: 0.1233  loss_rpn_loc: 0.1946  time: 0.7985  last_time: 0.7676  data_time: 0.1019  last_data_time: 0.0091   lr: 0.0001  max_mem: 16543M
+[02/28 17:52:53 d2.utils.events]:  eta: 13:40:52  iter: 1039  total_loss: 1.378  loss_cls: 0.3546  loss_box_reg: 0.2586  loss_mask: 0.4413  loss_rpn_cls: 0.1278  loss_rpn_loc: 0.1995  time: 0.7987  last_time: 0.8634  data_time: 0.0846  last_data_time: 0.1192   lr: 0.0001  max_mem: 16543M
+[02/28 17:53:09 d2.utils.events]:  eta: 13:40:58  iter: 1059  total_loss: 1.355  loss_cls: 0.3231  loss_box_reg: 0.2295  loss_mask: 0.4371  loss_rpn_cls: 0.1147  loss_rpn_loc: 0.2191  time: 0.7986  last_time: 0.7598  data_time: 0.0829  last_data_time: 0.1064   lr: 0.0001  max_mem: 16543M
+[02/28 17:53:25 d2.utils.events]:  eta: 13:39:53  iter: 1079  total_loss: 1.334  loss_cls: 0.3326  loss_box_reg: 0.233  loss_mask: 0.4336  loss_rpn_cls: 0.122  loss_rpn_loc: 0.1918  time: 0.7984  last_time: 0.8057  data_time: 0.0981  last_data_time: 0.1785   lr: 0.0001  max_mem: 16543M
+[02/28 17:53:41 d2.utils.events]:  eta: 13:39:56  iter: 1099  total_loss: 1.295  loss_cls: 0.3388  loss_box_reg: 0.2455  loss_mask: 0.4244  loss_rpn_cls: 0.1185  loss_rpn_loc: 0.1942  time: 0.7985  last_time: 0.7623  data_time: 0.0920  last_data_time: 0.0297   lr: 0.0001  max_mem: 16543M
+[02/28 17:54:03 d2.utils.events]:  eta: 13:40:13  iter: 1119  total_loss: 1.429  loss_cls: 0.3505  loss_box_reg: 0.2492  loss_mask: 0.4268  loss_rpn_cls: 0.1213  loss_rpn_loc: 0.2191  time: 0.8037  last_time: 0.8123  data_time: 0.3837  last_data_time: 0.0840   lr: 0.0001  max_mem: 16543M
+[02/28 17:54:26 d2.utils.events]:  eta: 13:41:06  iter: 1139  total_loss: 1.403  loss_cls: 0.3419  loss_box_reg: 0.2583  loss_mask: 0.441  loss_rpn_cls: 0.1362  loss_rpn_loc: 0.2273  time: 0.8073  last_time: 0.7874  data_time: 0.4188  last_data_time: 0.0776   lr: 0.0001  max_mem: 16543M
+[02/28 17:54:42 d2.utils.events]:  eta: 13:40:08  iter: 1159  total_loss: 1.309  loss_cls: 0.3258  loss_box_reg: 0.2369  loss_mask: 0.4295  loss_rpn_cls: 0.129  loss_rpn_loc: 0.182  time: 0.8071  last_time: 0.8366  data_time: 0.0709  last_data_time: 0.0830   lr: 0.0001  max_mem: 16543M
+[02/28 17:54:58 d2.utils.events]:  eta: 13:40:39  iter: 1179  total_loss: 1.401  loss_cls: 0.3626  loss_box_reg: 0.261  loss_mask: 0.4324  loss_rpn_cls: 0.1303  loss_rpn_loc: 0.2022  time: 0.8071  last_time: 0.7932  data_time: 0.0638  last_data_time: 0.0851   lr: 0.0001  max_mem: 16543M
+[02/28 17:55:14 d2.utils.events]:  eta: 13:40:14  iter: 1199  total_loss: 1.331  loss_cls: 0.331  loss_box_reg: 0.2527  loss_mask: 0.4317  loss_rpn_cls: 0.1221  loss_rpn_loc: 0.1949  time: 0.8070  last_time: 0.8142  data_time: 0.0667  last_data_time: 0.0564   lr: 0.0001  max_mem: 16543M
+[02/28 17:55:30 d2.utils.events]:  eta: 13:40:21  iter: 1219  total_loss: 1.363  loss_cls: 0.3326  loss_box_reg: 0.2569  loss_mask: 0.4318  loss_rpn_cls: 0.1199  loss_rpn_loc: 0.1918  time: 0.8071  last_time: 0.8248  data_time: 0.0681  last_data_time: 0.0707   lr: 0.0001  max_mem: 16543M
+[02/28 17:55:46 d2.utils.events]:  eta: 13:40:08  iter: 1239  total_loss: 1.332  loss_cls: 0.3353  loss_box_reg: 0.249  loss_mask: 0.4223  loss_rpn_cls: 0.1227  loss_rpn_loc: 0.2115  time: 0.8072  last_time: 0.7920  data_time: 0.0866  last_data_time: 0.0823   lr: 0.0001  max_mem: 16543M
+[02/28 17:56:03 d2.utils.events]:  eta: 13:40:00  iter: 1259  total_loss: 1.349  loss_cls: 0.3345  loss_box_reg: 0.2599  loss_mask: 0.4293  loss_rpn_cls: 0.13  loss_rpn_loc: 0.1872  time: 0.8072  last_time: 0.7728  data_time: 0.0921  last_data_time: 0.1028   lr: 0.0001  max_mem: 16543M
+[02/28 17:56:19 d2.utils.events]:  eta: 13:39:48  iter: 1279  total_loss: 1.329  loss_cls: 0.3325  loss_box_reg: 0.2496  loss_mask: 0.4169  loss_rpn_cls: 0.1161  loss_rpn_loc: 0.1966  time: 0.8071  last_time: 0.7969  data_time: 0.1007  last_data_time: 0.0866   lr: 0.0001  max_mem: 16543M
+[02/28 17:56:35 d2.utils.events]:  eta: 13:40:02  iter: 1299  total_loss: 1.317  loss_cls: 0.318  loss_box_reg: 0.238  loss_mask: 0.4216  loss_rpn_cls: 0.1265  loss_rpn_loc: 0.217  time: 0.8071  last_time: 0.8026  data_time: 0.0999  last_data_time: 0.0941   lr: 0.0001  max_mem: 16543M
+[02/28 17:56:51 d2.utils.events]:  eta: 13:39:57  iter: 1319  total_loss: 1.348  loss_cls: 0.3397  loss_box_reg: 0.2411  loss_mask: 0.4165  loss_rpn_cls: 0.1237  loss_rpn_loc: 0.2156  time: 0.8070  last_time: 0.8120  data_time: 0.0791  last_data_time: 0.1358   lr: 0.0001  max_mem: 16548M
+[02/28 17:57:07 d2.utils.events]:  eta: 13:40:16  iter: 1339  total_loss: 1.329  loss_cls: 0.3309  loss_box_reg: 0.2485  loss_mask: 0.4354  loss_rpn_cls: 0.1169  loss_rpn_loc: 0.1918  time: 0.8072  last_time: 0.8118  data_time: 0.0864  last_data_time: 0.0813   lr: 0.0001  max_mem: 16548M
+[02/28 17:57:24 d2.utils.events]:  eta: 13:40:11  iter: 1359  total_loss: 1.299  loss_cls: 0.3378  loss_box_reg: 0.2474  loss_mask: 0.4143  loss_rpn_cls: 0.1221  loss_rpn_loc: 0.194  time: 0.8072  last_time: 0.8605  data_time: 0.0673  last_data_time: 0.1540   lr: 0.0001  max_mem: 16548M
+[02/28 17:57:40 d2.utils.events]:  eta: 13:39:49  iter: 1379  total_loss: 1.332  loss_cls: 0.3321  loss_box_reg: 0.2384  loss_mask: 0.4366  loss_rpn_cls: 0.1179  loss_rpn_loc: 0.1935  time: 0.8073  last_time: 0.8626  data_time: 0.0811  last_data_time: 0.1101   lr: 0.0001  max_mem: 16548M
+[02/28 17:57:56 d2.utils.events]:  eta: 13:39:49  iter: 1399  total_loss: 1.35  loss_cls: 0.3207  loss_box_reg: 0.2406  loss_mask: 0.424  loss_rpn_cls: 0.1193  loss_rpn_loc: 0.1859  time: 0.8075  last_time: 0.8164  data_time: 0.1109  last_data_time: 0.0983   lr: 0.0001  max_mem: 16548M
+[02/28 17:58:12 d2.utils.events]:  eta: 13:39:17  iter: 1419  total_loss: 1.321  loss_cls: 0.3642  loss_box_reg: 0.258  loss_mask: 0.4171  loss_rpn_cls: 0.1253  loss_rpn_loc: 0.1914  time: 0.8073  last_time: 0.8412  data_time: 0.0933  last_data_time: 0.0685   lr: 0.0001  max_mem: 16548M
+[02/28 17:58:28 d2.utils.events]:  eta: 13:38:47  iter: 1439  total_loss: 1.32  loss_cls: 0.3256  loss_box_reg: 0.2377  loss_mask: 0.4295  loss_rpn_cls: 0.1137  loss_rpn_loc: 0.2055  time: 0.8069  last_time: 0.7768  data_time: 0.0658  last_data_time: 0.0762   lr: 0.0001  max_mem: 16548M
+[02/28 17:58:44 d2.utils.events]:  eta: 13:38:44  iter: 1459  total_loss: 1.34  loss_cls: 0.3292  loss_box_reg: 0.2485  loss_mask: 0.4231  loss_rpn_cls: 0.1195  loss_rpn_loc: 0.2015  time: 0.8070  last_time: 0.7758  data_time: 0.0983  last_data_time: 0.0359   lr: 0.0001  max_mem: 16548M
+[02/28 17:59:01 d2.utils.events]:  eta: 13:38:49  iter: 1479  total_loss: 1.317  loss_cls: 0.3364  loss_box_reg: 0.2438  loss_mask: 0.4293  loss_rpn_cls: 0.1132  loss_rpn_loc: 0.1922  time: 0.8073  last_time: 0.8568  data_time: 0.0764  last_data_time: 0.1054   lr: 0.0001  max_mem: 16548M
+[02/28 17:59:17 d2.utils.events]:  eta: 13:38:33  iter: 1499  total_loss: 1.286  loss_cls: 0.3178  loss_box_reg: 0.2306  loss_mask: 0.4126  loss_rpn_cls: 0.1216  loss_rpn_loc: 0.188  time: 0.8072  last_time: 0.8040  data_time: 0.0739  last_data_time: 0.0934   lr: 0.0001  max_mem: 16548M
+[02/28 17:59:33 d2.utils.events]:  eta: 13:38:22  iter: 1519  total_loss: 1.303  loss_cls: 0.3307  loss_box_reg: 0.2433  loss_mask: 0.4218  loss_rpn_cls: 0.1063  loss_rpn_loc: 0.1978  time: 0.8071  last_time: 0.8091  data_time: 0.0742  last_data_time: 0.0159   lr: 0.0001  max_mem: 16548M
+[02/28 17:59:49 d2.utils.events]:  eta: 13:38:27  iter: 1539  total_loss: 1.366  loss_cls: 0.3355  loss_box_reg: 0.2511  loss_mask: 0.4186  loss_rpn_cls: 0.1298  loss_rpn_loc: 0.2156  time: 0.8072  last_time: 0.7584  data_time: 0.0903  last_data_time: 0.0941   lr: 0.0001  max_mem: 16548M
+[02/28 18:00:05 d2.utils.events]:  eta: 13:39:06  iter: 1559  total_loss: 1.327  loss_cls: 0.3281  loss_box_reg: 0.2492  loss_mask: 0.4069  loss_rpn_cls: 0.1229  loss_rpn_loc: 0.2038  time: 0.8074  last_time: 0.7779  data_time: 0.1037  last_data_time: 0.1040   lr: 0.0001  max_mem: 16630M
+[02/28 18:00:22 d2.utils.events]:  eta: 13:39:10  iter: 1579  total_loss: 1.321  loss_cls: 0.3329  loss_box_reg: 0.2456  loss_mask: 0.4146  loss_rpn_cls: 0.1115  loss_rpn_loc: 0.1806  time: 0.8076  last_time: 0.7885  data_time: 0.0983  last_data_time: 0.1566   lr: 0.0001  max_mem: 16630M
+[02/28 18:00:38 d2.utils.events]:  eta: 13:39:19  iter: 1599  total_loss: 1.283  loss_cls: 0.3095  loss_box_reg: 0.2327  loss_mask: 0.4163  loss_rpn_cls: 0.1144  loss_rpn_loc: 0.199  time: 0.8078  last_time: 0.7961  data_time: 0.1039  last_data_time: 0.1339   lr: 0.0001  max_mem: 16630M
+[02/28 18:00:55 d2.utils.events]:  eta: 13:39:40  iter: 1619  total_loss: 1.349  loss_cls: 0.327  loss_box_reg: 0.2434  loss_mask: 0.4146  loss_rpn_cls: 0.1308  loss_rpn_loc: 0.2206  time: 0.8079  last_time: 0.7754  data_time: 0.0872  last_data_time: 0.0137   lr: 0.0001  max_mem: 16630M
+[02/28 18:01:11 d2.utils.events]:  eta: 13:39:25  iter: 1639  total_loss: 1.309  loss_cls: 0.3527  loss_box_reg: 0.253  loss_mask: 0.4206  loss_rpn_cls: 0.1086  loss_rpn_loc: 0.1749  time: 0.8080  last_time: 0.7992  data_time: 0.0837  last_data_time: 0.0794   lr: 0.0001  max_mem: 16875M
+[02/28 18:01:28 d2.utils.events]:  eta: 13:39:30  iter: 1659  total_loss: 1.298  loss_cls: 0.3419  loss_box_reg: 0.2524  loss_mask: 0.4208  loss_rpn_cls: 0.1115  loss_rpn_loc: 0.1892  time: 0.8082  last_time: 0.9118  data_time: 0.1095  last_data_time: 0.0482   lr: 0.0001  max_mem: 16875M
+[02/28 18:01:44 d2.utils.events]:  eta: 13:39:23  iter: 1679  total_loss: 1.268  loss_cls: 0.311  loss_box_reg: 0.2439  loss_mask: 0.4212  loss_rpn_cls: 0.1164  loss_rpn_loc: 0.192  time: 0.8083  last_time: 0.8766  data_time: 0.0977  last_data_time: 0.1601   lr: 0.0001  max_mem: 16875M
+[02/28 18:02:00 d2.utils.events]:  eta: 13:39:17  iter: 1699  total_loss: 1.3  loss_cls: 0.3156  loss_box_reg: 0.2384  loss_mask: 0.4205  loss_rpn_cls: 0.1259  loss_rpn_loc: 0.224  time: 0.8084  last_time: 0.8067  data_time: 0.1141  last_data_time: 0.1617   lr: 0.0001  max_mem: 16875M
+[02/28 18:02:17 d2.utils.events]:  eta: 13:39:14  iter: 1719  total_loss: 1.283  loss_cls: 0.3265  loss_box_reg: 0.2422  loss_mask: 0.413  loss_rpn_cls: 0.1132  loss_rpn_loc: 0.1956  time: 0.8085  last_time: 0.7611  data_time: 0.1058  last_data_time: 0.0160   lr: 0.0001  max_mem: 16875M
+[02/28 18:02:33 d2.utils.events]:  eta: 13:39:31  iter: 1739  total_loss: 1.359  loss_cls: 0.332  loss_box_reg: 0.2574  loss_mask: 0.4305  loss_rpn_cls: 0.119  loss_rpn_loc: 0.2017  time: 0.8088  last_time: 0.9165  data_time: 0.1043  last_data_time: 0.2152   lr: 0.0001  max_mem: 16875M
+[02/28 18:02:50 d2.utils.events]:  eta: 13:39:20  iter: 1759  total_loss: 1.253  loss_cls: 0.3182  loss_box_reg: 0.2439  loss_mask: 0.4111  loss_rpn_cls: 0.1188  loss_rpn_loc: 0.1981  time: 0.8088  last_time: 0.8291  data_time: 0.0915  last_data_time: 0.1244   lr: 0.0001  max_mem: 16875M
+[02/28 18:03:06 d2.utils.events]:  eta: 13:39:22  iter: 1779  total_loss: 1.271  loss_cls: 0.3212  loss_box_reg: 0.2284  loss_mask: 0.4188  loss_rpn_cls: 0.1203  loss_rpn_loc: 0.1837  time: 0.8089  last_time: 0.7727  data_time: 0.0927  last_data_time: 0.1088   lr: 0.0001  max_mem: 16875M
+[02/28 18:03:22 d2.utils.events]:  eta: 13:39:12  iter: 1799  total_loss: 1.25  loss_cls: 0.303  loss_box_reg: 0.2263  loss_mask: 0.4088  loss_rpn_cls: 0.1066  loss_rpn_loc: 0.1953  time: 0.8090  last_time: 0.7491  data_time: 0.0909  last_data_time: 0.0790   lr: 0.0001  max_mem: 16875M
+[02/28 18:03:39 d2.utils.events]:  eta: 13:39:07  iter: 1819  total_loss: 1.337  loss_cls: 0.3297  loss_box_reg: 0.2421  loss_mask: 0.4123  loss_rpn_cls: 0.1232  loss_rpn_loc: 0.2285  time: 0.8091  last_time: 0.9010  data_time: 0.0788  last_data_time: 0.0885   lr: 0.0001  max_mem: 16875M
+[02/28 18:03:55 d2.utils.events]:  eta: 13:39:04  iter: 1839  total_loss: 1.281  loss_cls: 0.3218  loss_box_reg: 0.233  loss_mask: 0.4018  loss_rpn_cls: 0.1142  loss_rpn_loc: 0.2058  time: 0.8092  last_time: 0.8249  data_time: 0.0869  last_data_time: 0.2042   lr: 0.0001  max_mem: 16875M
+[02/28 18:04:12 d2.utils.events]:  eta: 13:38:59  iter: 1859  total_loss: 1.238  loss_cls: 0.3001  loss_box_reg: 0.2249  loss_mask: 0.4083  loss_rpn_cls: 0.1084  loss_rpn_loc: 0.1958  time: 0.8094  last_time: 0.7941  data_time: 0.0905  last_data_time: 0.0512   lr: 0.0001  max_mem: 16875M
+[02/28 18:04:28 d2.utils.events]:  eta: 13:38:45  iter: 1879  total_loss: 1.261  loss_cls: 0.2913  loss_box_reg: 0.2172  loss_mask: 0.4209  loss_rpn_cls: 0.1077  loss_rpn_loc: 0.1921  time: 0.8093  last_time: 0.7723  data_time: 0.0935  last_data_time: 0.0910   lr: 0.0001  max_mem: 16875M
+[02/28 18:04:44 d2.utils.events]:  eta: 13:39:02  iter: 1899  total_loss: 1.288  loss_cls: 0.3274  loss_box_reg: 0.255  loss_mask: 0.405  loss_rpn_cls: 0.118  loss_rpn_loc: 0.1864  time: 0.8096  last_time: 0.7555  data_time: 0.1086  last_data_time: 0.0968   lr: 0.0001  max_mem: 16902M
+[02/28 18:05:01 d2.utils.events]:  eta: 13:38:46  iter: 1919  total_loss: 1.244  loss_cls: 0.3105  loss_box_reg: 0.2382  loss_mask: 0.4002  loss_rpn_cls: 0.1056  loss_rpn_loc: 0.2036  time: 0.8096  last_time: 0.7881  data_time: 0.1153  last_data_time: 0.1118   lr: 0.0001  max_mem: 16902M
+[02/28 18:05:17 d2.utils.events]:  eta: 13:38:36  iter: 1939  total_loss: 1.283  loss_cls: 0.3098  loss_box_reg: 0.2503  loss_mask: 0.4086  loss_rpn_cls: 0.1032  loss_rpn_loc: 0.2091  time: 0.8096  last_time: 0.8339  data_time: 0.0857  last_data_time: 0.0878   lr: 0.0001  max_mem: 16902M
+[02/28 18:05:33 d2.utils.events]:  eta: 13:38:31  iter: 1959  total_loss: 1.321  loss_cls: 0.3294  loss_box_reg: 0.254  loss_mask: 0.4112  loss_rpn_cls: 0.1222  loss_rpn_loc: 0.2059  time: 0.8097  last_time: 0.8900  data_time: 0.0946  last_data_time: 0.1402   lr: 0.0001  max_mem: 16902M
+[02/28 18:05:49 d2.utils.events]:  eta: 13:39:16  iter: 1979  total_loss: 1.337  loss_cls: 0.3368  loss_box_reg: 0.2565  loss_mask: 0.4139  loss_rpn_cls: 0.1109  loss_rpn_loc: 0.2095  time: 0.8098  last_time: 0.8212  data_time: 0.0904  last_data_time: 0.1277   lr: 0.0001  max_mem: 16902M
+[02/28 18:06:06 d2.utils.events]:  eta: 13:37:59  iter: 1999  total_loss: 1.269  loss_cls: 0.3172  loss_box_reg: 0.2313  loss_mask: 0.3953  loss_rpn_cls: 0.107  loss_rpn_loc: 0.211  time: 0.8097  last_time: 0.7910  data_time: 0.0778  last_data_time: 0.0489   lr: 0.0001  max_mem: 16902M
+ERROR [02/28 18:06:13 d2.engine.train_loop]: Exception during training:
+Traceback (most recent call last):
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/train_loop.py", line 149, in train
+    self.run_step()
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/train_loop.py", line 435, in run_step
+    self.grad_scaler.scale(losses).backward()
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/_tensor.py", line 489, in backward
+    self, gradient, retain_graph, create_graph, inputs=inputs
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/autograd/__init__.py", line 199, in backward
+    allow_unreachable=True, accumulate_grad=True)  # Calls into the C++ engine to run the backward pass
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB (GPU 0; 19.71 GiB total capacity; 16.56 GiB already allocated; 78.62 MiB free; 18.27 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+[02/28 18:06:13 d2.engine.hooks]: Overall training speed: 2007 iterations in 0:27:05 (0.8100 s / it)
+[02/28 18:06:13 d2.engine.hooks]: Total training time: 0:27:09 (0:00:04 on hooks)
+[02/28 18:06:13 d2.utils.events]:  eta: 13:38:11  iter: 2009  total_loss: 1.217  loss_cls: 0.2945  loss_box_reg: 0.224  loss_mask: 0.3964  loss_rpn_cls: 0.1025  loss_rpn_loc: 0.1762  time: 0.8097  last_time: 0.8569  data_time: 0.0836  last_data_time: 0.0948   lr: 0.0001  max_mem: 17304M
+/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/functional.py:504: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at /opt/conda/conda-bld/pytorch_1670525541035/work/aten/src/ATen/native/TensorShape.cpp:3190.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/optim/lr_scheduler.py:143: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  "https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate", UserWarning)
+Traceback (most recent call last):
+  File "tools/lazyconfig_train_net.py", line 131, in <module>
+    args=(args,),
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/launch.py", line 81, in launch
+    daemon=False,
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/multiprocessing/spawn.py", line 198, in start_processes
+    while not context.join():
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/multiprocessing/spawn.py", line 160, in join
+    raise ProcessRaisedException(msg, error_index, failed_process.pid)
+torch.multiprocessing.spawn.ProcessRaisedException: 
+
+-- Process 0 terminated with the following error:
+Traceback (most recent call last):
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/multiprocessing/spawn.py", line 69, in _wrap
+    fn(i, *args)
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/launch.py", line 123, in _distributed_worker
+    main_func(*args)
+  File "/srv/home/pmorgado/yibing/detectron2/tools/lazyconfig_train_net.py", line 120, in main
+    do_train(args, cfg)
+  File "/srv/home/pmorgado/yibing/detectron2/tools/lazyconfig_train_net.py", line 104, in do_train
+    trainer.train(start_iter, cfg.train.max_iter)
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/train_loop.py", line 149, in train
+    self.run_step()
+  File "/srv/home/pmorgado/yibing/detectron2/detectron2/engine/train_loop.py", line 435, in run_step
+    self.grad_scaler.scale(losses).backward()
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/_tensor.py", line 489, in backward
+    self, gradient, retain_graph, create_graph, inputs=inputs
+  File "/srv/home/pmorgado/anaconda3/envs/pt113/lib/python3.7/site-packages/torch/autograd/__init__.py", line 199, in backward
+    allow_unreachable=True, accumulate_grad=True)  # Calls into the C++ engine to run the backward pass
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 262.00 MiB (GPU 0; 19.71 GiB total capacity; 16.56 GiB already allocated; 78.62 MiB free; 18.27 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+
+srun: error: euler22: task 0: Exited with exit code 1

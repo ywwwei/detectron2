@@ -28,6 +28,7 @@ from detectron2.engine import (
 from detectron2.engine.defaults import create_ddp_model
 from detectron2.evaluation import inference_on_dataset, print_csv_format
 from detectron2.utils import comm
+import os
 
 logger = logging.getLogger("detectron2")
 
@@ -103,10 +104,20 @@ def do_train(args, cfg):
         start_iter = 0
     trainer.train(start_iter, cfg.train.max_iter)
 
+def cfg_overrides(cfg):
+    cfg.train.max_iter=cfg.train.num_images_per_iter * cfg.epochs
+    
+    cfg.lr_multiplier.warmup_length = cfg.warmup_iters / cfg.train.max_iter
+    
+    cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints","checkpoint_latest_detectron2.pth")
+    cfg.train.output_dir = f"{cfg.ckpt_dir}/det__{cfg.pretrain_job_name}__ep{cfg.epochs}_bs{cfg.dataloader.train.total_batch_size}_blr{cfg.optimizer.lr}_im{cfg.model.backbone.net.img_size}"
+    
+    return cfg
 
 def main(args):
     cfg = LazyConfig.load(args.config_file)
     cfg = LazyConfig.apply_overrides(cfg, args.opts)
+    cfg = cfg_overrides(cfg)
     
     default_setup(cfg, args)
 
