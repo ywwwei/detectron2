@@ -75,7 +75,7 @@ def do_train(args, cfg):
     trainer = (AMPTrainer if cfg.train.amp.enabled else SimpleTrainer)(model, train_loader, optim)
     checkpointer = DetectionCheckpointer(
         model,
-        cfg.train.output_dir, #TODO: cfg.opt. 
+        cfg.train.output_dir, 
         trainer=trainer,
     )
     trainer.register_hooks(
@@ -105,6 +105,14 @@ def do_train(args, cfg):
     trainer.train(start_iter, cfg.train.max_iter)
 
 def cfg_overrides(cfg):
+    # cfg.dataloader.train.total_batch_size
+    num_images = 117266
+    cfg.dataloader.train.total_batch_size=cfg.bs*cfg.ngpus
+    num_images_per_iter = num_images//cfg.dataloader.train.total_batch_size
+    cfg.train.num_images_per_iter = num_images_per_iter
+    cfg.train.checkpointer=dict(period=num_images_per_iter, max_to_keep=100) # checkpoint every epoch
+    cfg.train.eval_period=num_images_per_iter
+    
     cfg.train.max_iter=cfg.train.num_images_per_iter * cfg.epochs
     
     cfg.lr_multiplier.warmup_length = cfg.warmup_iters / cfg.train.max_iter
@@ -112,9 +120,9 @@ def cfg_overrides(cfg):
     if cfg.pretrain_job_name.endswith(".pth"):
         cfg.train.init_checkpoint = os.path.join(cfg.modelzoo_dir,cfg.pretrain_job_name)
     else:
-        cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints","checkpoint_latest_detectron2.pth")
+        cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints",f"checkpoint_{cfg.ckpt_epoch}_detectron2.pth")
     
-    cfg.train.output_dir = f"{cfg.ckpt_dir}/det__{cfg.pretrain_job_name}__ep{cfg.epochs}_bs{cfg.dataloader.train.total_batch_size}_blr{cfg.optimizer.lr}_im{cfg.model.backbone.net.img_size}"
+    cfg.train.output_dir = f"{cfg.ckpt_dir}/det_{cfg.pretrain_job_name}_{cfg.ckpt_epoch}_ep{cfg.epochs}_bs{cfg.bs}x{cfg.ngpus}_blr{cfg.optimizer.lr}_im{cfg.model.backbone.net.img_size}"
     
     return cfg
 

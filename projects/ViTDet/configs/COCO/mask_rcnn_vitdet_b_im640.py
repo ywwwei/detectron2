@@ -8,8 +8,7 @@ from detectron2.modeling.backbone.vit import get_vit_lr_decay_rate
 
 import detectron2.data.transforms as T
 
-import os
-image_size = 480
+image_size = 640 #480 bs6 per gpu #640 4 per gpu
 
 ## MDOEL
 model = model_zoo.get_config("common/models/mask_rcnn_vitdet.py").model #configs/common/models/mask_rcnn_vitdet.py
@@ -18,7 +17,6 @@ model.backbone.square_pad = image_size
 
 ## DATA
 dataloader = model_zoo.get_config("common/data/coco.py").dataloader
-dataloader.train.total_batch_size = 24 #5(640) /7(512) image per gpu #4 gpu
 dataloader.train.mapper.augmentations = [
     L(T.RandomFlip)(horizontal=True),  # flip first
     L(T.ResizeScale)(
@@ -35,14 +33,14 @@ dataloader.test.mapper.augmentations = [
 ]
 
 ## TRAIN
-num_images = 117266
+# num_images = 117266
 train = model_zoo.get_config("common/train.py").train
-num_images_per_iter = num_images//dataloader.train.total_batch_size
-train.num_images_per_iter = num_images_per_iter
+# num_images_per_iter = num_images//dataloader.train.total_batch_size
+# train.num_images_per_iter = num_images_per_iter
 train.amp.enabled = True
 train.ddp.fp16_compression = True
-train.checkpointer=dict(period=num_images_per_iter, max_to_keep=100) # checkpoint every epoch
-train.eval_period=num_images_per_iter
+# train.checkpointer=dict(period=num_images_per_iter, max_to_keep=100) # checkpoint every epoch
+# train.eval_period=num_images_per_iter
 train.log_period=50
 
 # ckpt_dir = "/srv/home/pmorgado/workspace/mae2cl/checkpoints"
@@ -54,9 +52,6 @@ train.log_period=50
 # )
 
 # SCHEDULE
-# 100 ep = 184375 iters * 64 images/iter / 118000 images/ep
-# 10 ep = 48861 iters * 24 images/iter / 117266 images/ep # Loaded 118287 images. Removed 1021 images with no usable annotations. 117266 images left.
-
 lr_multiplier = L(WarmupParamScheduler)(
     scheduler=L(MultiStepParamScheduler)(
         values=[1.0, 0.1, 0.01],
@@ -69,7 +64,7 @@ lr_multiplier = L(WarmupParamScheduler)(
 
 # OPTIMIZER
 optimizer = model_zoo.get_config("common/optim.py").AdamW
-optimizer.lr = 1e-4 # ImageNet 8e-5 | None 1.6e-4 | MAE 1e-4
+# optimizer.lr = 1e-4 # ImageNet 8e-5 | None 1.6e-4 | MAE 1e-4
 optimizer.params.lr_factor_func = partial(get_vit_lr_decay_rate, num_layers=12, lr_decay_rate=0.7)
 optimizer.params.overrides = {"pos_embed": {"weight_decay": 0.0}}
 

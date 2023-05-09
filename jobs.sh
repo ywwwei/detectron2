@@ -2,11 +2,11 @@
 # COCO | Mask RCNN | ViT
 # MAE
     # original mae
-    srun -N 1 -G 4 --job-name=det_mae --partition=morgadolab --time=24:00:00 --mem=128G --cpus-per-task=63 --nodelist=euler23 \  
+    srun -N 1 -G 4 --job-name=det_mae --partition=morgadolab --time=24:00:00 --mem=128G --cpus-per-task=63 --nodelist=euler10 \  
     tools/lazyconfig_train_net.py \
     --config-file /srv/home/pmorgado/yibing/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_10ep.py \
-    --resume --num-gpus 4 \
-    modelzoo_dir=/srv/home/pmorgado/yibing/modelzoo/ \
+    --resume --num-gpus 1 \
+    modelzoo_dir=/srv/home/wei96/modelzoo \
     pretrain_job_name=mae_pretrain_vit_base.pth \
     ckpt_dir=/srv/home/pmorgado/workspace/mae2cl/checkpoints \
     epochs=10 warmup_iters=1000 \
@@ -23,14 +23,15 @@
     dataloader.train.total_batch_size=24 optimizer.lr=5e-4
 
     # debug
-    nohup srun -N 1 -G 4 --job-name=detection_lr1 --partition=morgadolab --time=24:00:00 --mem=64G --cpus-per-task=64 --nodelist=euler23 \
+    srun -N 1 -G 4 --job-name=vitdet_mae_lr5e-4 --partition=morgadolab --time=24:00:00 --mem=64G --cpus-per-task=32 \
     tools/lazyconfig_train_net.py \
-    --config-file /srv/home/pmorgado/yibing/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_10ep.py \
+    --config-file /srv/home/wei96/project/detectron2/projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_10ep.py \
     --num-gpus 4 \
-    pretrain_job_name="path1_maefeat_d3t12_compl\[0\,\ 0.25\]_m0.9_c0.2_epeintrinsic_dpeglobal_blr0.0005_infonce_patches_in100_vitb_bs128x1_ep100_id3" \
-    ckpt_dir=/srv/home/pmorgado/workspace/mae2cl/checkpoints \
+    modelzoo_dir=/srv/home/wei96/modelzoo \
+    pretrain_job_name=mae_pretrain_vit_base.pth \
+    ckpt_dir=/srv/home/wei96/checkpoints/mae2cl \
     epochs=10 warmup_iters=1000 \
-    dataloader.train.total_batch_size=24 optimizer.lr=1e-3 &
+    dataloader.train.total_batch_size=16 optimizer.lr=5e-4
 
 # Using sbatch
 # path1_maefeat
@@ -55,3 +56,35 @@
     ckpt_dir=/srv/home/pmorgado/workspace/mae2cl/checkpoints \
     epochs=10 warmup_iters=1000 \
     dataloader.train.total_batch_size=24 optimizer.lr=5e-4
+
+#mae
+# partition nodelist ngpus lr bs epochs
+# ckpt_dir
+# pretrain_job_name checkpoint_epoch
+bash sbatch_v12_det_im480.sh \
+morgadolab euler10 2 0.0005 7 10 \
+/srv/home/wei96/checkpoints/mae2cl \
+mae_pretrain_vit_base.pth 
+
+bash sbatch_v12_det_im480.sh \
+morgadolab euler28 4 0.0005 6 10 \
+/srv/home/wei96/checkpoints/mae2cl \
+v13_vit_base_d3t12_k2_m0.9in93out0.51_blr0.0005_0.0001_0.0001_infonce_patches_bs128x1x1_ep100_imagenet100_id0 \
+latest
+
+
+
+
+bash sbatch_v12_det_im480.sh \
+morgadolab euler10 4 0.0005 6 10 \
+/srv/home/wei96/checkpoints/mae2cl \
+v12_vit_base_d3t12_k3_m0.925in0.5out0.75_blr8e-05_0.0003_1e-06_infonce_patches_bs256x8x1_ep800_imagenet_id0 \
+0500
+
+
+bash sbatch_v12_det_im480.sh \
+morgadolab euler10 4 0.0005 6 10 \
+/srv/home/wei96/checkpoints/mae2cl \
+v13_vit_base_d4t12_k2_m0.925in134out0.5_blr0.00015_0.0003_0.0003_infonce_patches_bs256x4x4x4_ep800_imagenet_id0 \
+0200
+
