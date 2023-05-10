@@ -109,8 +109,6 @@ class JSONWriter(EventWriter):
         to_save = defaultdict(dict)
 
         for k, (v, iter) in storage.latest_with_smoothing_hint(self._window_size).items():
-            if "AP" in k:
-                print(k)
             # keep scalars that have not been written
             if iter <= self._last_write:
                 continue
@@ -171,8 +169,6 @@ class WandbWriter(EventWriter):
                     continue
                 if "loss" in k or k=="lr" or k=="bbox/AP" or k=="segm/AP":
                     to_save[iter][k] = v
-                if "AP" in k:
-                    print(k)
             if len(to_save):
                 all_iters = sorted(to_save.keys())
                 self._last_write = max(all_iters)
