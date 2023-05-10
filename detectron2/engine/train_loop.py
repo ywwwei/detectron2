@@ -487,11 +487,10 @@ class AccumAMPTrainer(AMPTrainer):
                 losses = sum(loss_dict.values())
             losses /= self.accum_iter
 
+        self.grad_scaler.scale(losses).backward()
         if (self.iter + 1) % self.accum_iter == 0:
-            self.optimizer.zero_grad()
-            self.grad_scaler.scale(losses).backward()
-
-            self._write_metrics(loss_dict, data_time)
-
             self.grad_scaler.step(self.optimizer)
             self.grad_scaler.update()   
+            self.optimizer.zero_grad()
+
+        self._write_metrics(loss_dict, data_time)
