@@ -61,6 +61,7 @@ lr_multiplier = L(WarmupParamScheduler)(
     warmup_length=1000 / train.max_iter, # 250 / train.max_iter
     warmup_factor=0.001,
 )
+accum_iter=1
 
 # OPTIMIZER
 optimizer = model_zoo.get_config("common/optim.py").AdamW

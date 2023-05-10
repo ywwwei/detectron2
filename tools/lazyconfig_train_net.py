@@ -17,6 +17,7 @@ import logging
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import LazyConfig, instantiate
 from detectron2.engine import (
+    AccumAMPTrainer,
     AMPTrainer,
     SimpleTrainer,
     default_argument_parser,
@@ -72,7 +73,10 @@ def do_train(args, cfg):
     train_loader = instantiate(cfg.dataloader.train)
 
     model = create_ddp_model(model, **cfg.train.ddp)
-    trainer = (AMPTrainer if cfg.train.amp.enabled else SimpleTrainer)(model, train_loader, optim)
+    if cfg.train.amp.enabled:
+        trainer = AccumAMPTrainer(model, train_loader, optim, accum_iter=cfg.accum_iter)
+    else:
+        trainer = SimpleTrainer(model, train_loader, optim)
     checkpointer = DetectionCheckpointer(
         model,
         cfg.train.output_dir, 
