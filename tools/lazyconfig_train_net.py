@@ -29,6 +29,7 @@ from detectron2.engine import (
 from detectron2.engine.defaults import create_ddp_model
 from detectron2.evaluation import inference_on_dataset, print_csv_format
 from detectron2.utils import comm
+from detectron2.utils.events import TensorboardXWriter,WandbWriter
 import os
 
 logger = logging.getLogger("detectron2")
@@ -82,6 +83,12 @@ def do_train(args, cfg):
         cfg.train.output_dir, 
         trainer=trainer,
     )
+    writers = default_writers(cfg.train.output_dir, cfg.train.max_iter)
+    # if cfg.log.use_tensorboad:
+    #     writers.append(TensorboardXWriter(cfg.train.output_dir))
+    if cfg.log.use_wandb:
+        writers.append(WandbWriter(cfg, cfg.train.output_dir, entity=cfg.log.wandb_entity, project=cfg.log.wandb_project, job_name=cfg.job_name))
+    
     trainer.register_hooks(
         [
             hooks.IterationTimer(),
@@ -90,8 +97,7 @@ def do_train(args, cfg):
             if comm.is_main_process()
             else None,
             hooks.EvalHook(cfg.train.eval_period, lambda: do_test(cfg, model)),
-            hooks.PeriodicWriter(
-                default_writers(cfg.train.output_dir, cfg.train.max_iter),
+            hooks.PeriodicWriter(writers,
                 period=cfg.train.log_period,
             )
             if comm.is_main_process()
@@ -126,7 +132,8 @@ def cfg_overrides(cfg):
     else:
         cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints",f"checkpoint_{cfg.ckpt_epoch}_detectron2.pth")
     
-    cfg.train.output_dir = f"{cfg.ckpt_dir}/det_{cfg.pretrain_job_name}_{cfg.ckpt_epoch}_ep{cfg.epochs}_bs{cfg.bs}x{cfg.ngpus}_blr{cfg.optimizer.lr}_im{cfg.model.backbone.net.img_size}"
+    cfg.job_name=f"det_{cfg.pretrain_job_name}_{cfg.ckpt_epoch}_ep{cfg.epochs}_bs{cfg.bs}x{cfg.ngpus}x{cfg.accum_iter}_blr{cfg.optimizer.lr}_im{cfg.model.backbone.net.img_size}"
+    cfg.train.output_dir = f"{cfg.ckpt_dir}/{cfg.job_name}"
     
     return cfg
 
@@ -145,7 +152,6 @@ def main(args):
         print(do_test(cfg, model))
     else:
         do_train(args, cfg)
-
 
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()

@@ -45,7 +45,7 @@ from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import setup_logger
 
 from . import hooks
-from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase
+from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase, AccumAMPTrainer
 
 __all__ = [
     "create_ddp_model",
@@ -244,8 +244,7 @@ def default_writers(output_dir: str, max_iter: Optional[int] = None):
     return [
         # It may not always print what you want to see, since it prints "common" metrics only.
         CommonMetricPrinter(max_iter),
-        JSONWriter(os.path.join(output_dir, "metrics.json")),
-        TensorboardXWriter(output_dir),
+        JSONWriter(os.path.join(output_dir, "metrics.json"))
     ]
 
 

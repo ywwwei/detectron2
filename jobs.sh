@@ -58,11 +58,11 @@
     dataloader.train.total_batch_size=24 optimizer.lr=5e-4
 
 #mae
-# partition nodelist ngpus lr bs epochs
+# partition nodelist ngpus accum_iter lr bs epochs
 # ckpt_dir
 # pretrain_job_name checkpoint_epoch
 bash sbatch_v12_det_im480.sh \
-morgadolab euler10 2 0.0005 7 10 \
+morgadolab euler10 2 4 0.0005 7 10 \
 /srv/home/wei96/checkpoints/mae2cl \
 mae_pretrain_vit_base.pth 
 
@@ -88,3 +88,23 @@ morgadolab euler10 4 0.0005 6 10 \
 v13_vit_base_d4t12_k2_m0.925in134out0.5_blr0.00015_0.0003_0.0003_infonce_patches_bs256x4x4x4_ep800_imagenet_id0 \
 0200
 
+
+# debug on mmlab2 
+#export DETECTRON2_DATASETS=/home/yibingwei/dataset
+CUDA_VISIBLE_DEVICES=0 tools/lazyconfig_train_net.py \
+--config-file projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_im480.py \
+--resume --num-gpus 1 --dist-url tcp://127.0.0.1:40011 --eval_only True\
+pretrain_job_name=mae_pretrain_vit_base.pth modelzoo_dir=/home/yibingwei/model_zoo \
+ckpt_dir=/home/yibingwei/checkpoints/mae2cl \
+epochs=10 warmup_iters=1000 ckpt_epoch=latest \
+bs=1 ngpus=1 optimizer.lr=0.0005 accum_iter=5 \
+log.use_wandb=True log.wandb_entity=mae-vs-clr log.wandb_project=mae2cl_det
+
+tools/lazyconfig_train_net.py \
+--config-file projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_im480.py \
+--resume --num-gpus 2 --dist-url tcp://127.0.0.1:40001 \
+pretrain_job_name=mae_pretrain_vit_base.pth modelzoo_dir=/home/yibingwei/model_zoo \
+ckpt_dir=/home/yibingwei/checkpoints/mae2cl \
+epochs=10 warmup_iters=1000 ckpt_epoch=latest \
+bs=3 ngpus=2 optimizer.lr=0.0005 accum_iter=4 \
+log.use_wandb=True log.wandb_entity=mae-vs-clr log.wandb_project=mae2cl_det

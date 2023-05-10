@@ -13,7 +13,7 @@ import detectron2.utils.comm as comm
 from detectron2.utils.events import EventStorage, get_event_storage
 from detectron2.utils.logger import _log_api_usage
 
-__all__ = ["HookBase", "TrainerBase", "SimpleTrainer", "AMPTrainer"]
+__all__ = ["HookBase", "TrainerBase", "SimpleTrainer", "AMPTrainer","AccumAMPTrainer"]
 
 
 class HookBase:

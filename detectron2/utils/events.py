@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import datetime
 import json
+import wandb
 import logging
 import os
 import time
@@ -9,6 +10,7 @@ from contextlib import contextmanager
 from typing import Optional
 import torch
 from fvcore.common.history_buffer import HistoryBuffer
+from detectron2.utils import comm
 
 from detectron2.utils.file_io import PathManager
 
@@ -107,6 +109,8 @@ class JSONWriter(EventWriter):
         to_save = defaultdict(dict)
 
         for k, (v, iter) in storage.latest_with_smoothing_hint(self._window_size).items():
+            if "AP" in k:
+                print(k)
             # keep scalars that have not been written
             if iter <= self._last_write:
                 continue
@@ -127,7 +131,55 @@ class JSONWriter(EventWriter):
     def close(self):
         self._file_handle.close()
 
+class WandbWriter(EventWriter):
+    """
+    Write scalars to wandb
+    """
 
+    def __init__(self, cfg, job_dir, entity='pmorgado', project='mae-vs-mclr', job_name='tmp', window_size=20):
+        """
+        Args:
+            json_file (str): path to the json file. New data will be appended if the file exists.
+            window_size (int): the window size of median smoothing for the scalars whose
+                `smoothing_hint` are True.
+        """
+        if comm.is_main_process():
+            wandb_dir = os.path.join(job_dir, 'wandb')
+            os.makedirs(wandb_dir, exist_ok=True)
+            runid = None
+            if os.path.exists(f"{wandb_dir}/runid.txt"):
+                runid = open(f"{wandb_dir}/runid.txt").read()
+            wandb.init(project=project,
+                    name=job_name,
+                    dir=wandb_dir,
+                    entity=entity,
+                    resume="allow",
+                    id=runid)
+            open(f"{wandb_dir}/runid.txt", 'w').write(wandb.run.id)
+            wandb.config.update({k: cfg[k] for k in cfg if k not in wandb.config})
+            self._window_size = window_size
+            self._last_write = -1
+
+    def write(self):
+        if comm.is_main_process():
+            storage = get_event_storage()
+            to_save = defaultdict(dict)
+
+            for k, (v, iter) in storage.latest_with_smoothing_hint(self._window_size).items():
+                # keep scalars that have not been written
+                if iter <= self._last_write:
+                    continue
+                if "loss" in k or k=="lr" or k=="bbox/AP" or k=="segm/AP":
+                    to_save[iter][k] = v
+                if "AP" in k:
+                    print(k)
+            if len(to_save):
+                all_iters = sorted(to_save.keys())
+                self._last_write = max(all_iters)
+
+            for itr, scalars_per_iter in to_save.items():
+                wandb.log(scalars_per_iter, step=itr)
+        
 class TensorboardXWriter(EventWriter):
     """
     Write all scalars to a tensorboard file.
