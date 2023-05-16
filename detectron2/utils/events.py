@@ -167,7 +167,7 @@ class WandbWriter(EventWriter):
                 # keep scalars that have not been written
                 if iter <= self._last_write:
                     continue
-                if "loss" in k or k=="lr" or k=="bbox/AP" or k=="segm/AP":
+                if "loss" in k or k=="lr" or "AP" in k:
                     to_save[iter][k] = v
             if len(to_save):
                 all_iters = sorted(to_save.keys())

@@ -8,12 +8,22 @@ from detectron2.modeling.backbone.vit import get_vit_lr_decay_rate
 
 import detectron2.data.transforms as T
 
-image_size = 640 #480 bs6 per gpu #640 4 per gpu
+image_size = 480 #480 bs6 per gpu #640 4 per gpu
 
 ## MDOEL
 model = model_zoo.get_config("common/models/mask_rcnn_vitdet.py").model #configs/common/models/mask_rcnn_vitdet.py
 model.backbone.net.img_size = image_size
 model.backbone.square_pad = image_size
+
+model.backbone.net.embed_dim = 1024
+model.backbone.net.depth = 24
+model.backbone.net.num_heads = 16
+model.backbone.net.drop_path_rate = 0.4
+# 5, 11, 17, 23 for global attention
+model.backbone.net.window_block_indexes = (
+    list(range(0, 5)) + list(range(6, 11)) + list(range(12, 17)) + list(range(18, 23))
+)
+
 
 ## DATA
 dataloader = model_zoo.get_config("common/data/coco.py").dataloader
@@ -66,7 +76,7 @@ accum_iter=1
 # OPTIMIZER
 optimizer = model_zoo.get_config("common/optim.py").AdamW
 # optimizer.lr = 1e-4 # ImageNet 8e-5 | None 1.6e-4 | MAE 1e-4
-optimizer.params.lr_factor_func = partial(get_vit_lr_decay_rate, num_layers=12, lr_decay_rate=0.7)
+optimizer.params.lr_factor_func = partial(get_vit_lr_decay_rate, lr_decay_rate=0.8, num_layers=24)
 optimizer.params.overrides = {"pos_embed": {"weight_decay": 0.0}}
 
 # LOG
