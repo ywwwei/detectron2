@@ -29,7 +29,7 @@ sbatch <<EOT
 #SBATCH --nodelist=${nodelist} 
 #SBATCH --cpus-per-task=$((16*${ngpus})) 
 #SBATCH --mem=$((50*${ngpus}))G	
-#SBATCH --time=8:00:00	
+#SBATCH --time=2:00:00	
 #SBATCH --output=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480/log.out
 #SBATCH --error=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480/log.err	
 

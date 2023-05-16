@@ -117,10 +117,10 @@ v13_vit_base_d4t12_k2_m0.925in134out0.5_blr0.00015_0.0003_0.0003_infonce_patches
 # checkpoint_epoch=${14}
 # modelzoo_dir=${15}
 bash sbatch_vitdet_b_im480.sh \
-morgadolab euler22 4 1 0.0005 6 10 \
+morgadolab euler10 4 1 0.0005 6 10 \
 0.1 0.1 \
 /srv/home/wei96/checkpoints/mae2cl \
-moco_vit_small_ep100_bs32x4x1_imagenet100_blr0.0005_id0 \
+moco_vit_base_ep100_bs16x8x1_imagenet100_blr0.0005_id0 \
 latest
 
 
@@ -135,7 +135,7 @@ latest \
 
 # small
 bash sbatch_vitdet_s_im480.sh \
-morgadolab euler10 4 1 0.0005 6 10 \
+morgadolab euler22 4 1 0.0005 6 10 \
 0.1 0.1 \
 /srv/home/wei96/checkpoints/mae2cl \
 moco_vit_small_ep100_bs32x4x1_imagenet100_blr0.0005_id0 \
