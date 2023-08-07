@@ -27,9 +27,9 @@ sbatch <<EOT
 #SBATCH --job-name=det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480 # Job name
 #SBATCH --partition=${partition}
 #SBATCH --nodelist=${nodelist} 
-#SBATCH --cpus-per-task=$((15*${ngpus})) 
-#SBATCH --mem=$((60*${ngpus}))G	
-#SBATCH --time=3:00:00	
+#SBATCH --cpus-per-task=$((14*${ngpus})) 
+#SBATCH --mem=$((30*${ngpus}))G	
+#SBATCH --time=12:00:00	
 #SBATCH --output=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480/log.out
 #SBATCH --error=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480/log.err	
 

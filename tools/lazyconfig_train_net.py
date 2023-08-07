@@ -127,7 +127,9 @@ def cfg_overrides(cfg):
     
     cfg.lr_multiplier.warmup_length = cfg.warmup_iters / cfg.train.max_iter
     
-    if cfg.pretrain_job_name.endswith(".pth"):
+    if "random" in cfg.pretrain_job_name:
+        cfg.train.init_checkpoint = None
+    elif cfg.pretrain_job_name.endswith(".pth"):
         cfg.train.init_checkpoint = os.path.join(cfg.modelzoo_dir,cfg.pretrain_job_name)
     else:
         cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints",f"checkpoint_{cfg.ckpt_epoch}_detectron2.pth")

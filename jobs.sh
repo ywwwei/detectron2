@@ -109,18 +109,19 @@ v13_vit_base_d4t12_k2_m0.925in134out0.5_blr0.00015_0.0003_0.0003_infonce_patches
 0200
 
 
-# base
+
 # partition=$1 nodelist=$2 ngpus=$3 accum_iter=$4 lr=$5 bs=$6 epochs=$7
 # wd=$8 dp=$9
 # ckpt_dir=${12}
 # pretrain_job_name=${13}
 # checkpoint_epoch=${14}
 # modelzoo_dir=${15}
+# base
 bash sbatch_vitdet_b_im480.sh \
 morgadolab euler10 4 1 0.0005 6 10 \
 0.1 0.1 \
 /srv/home/wei96/checkpoints/mae2cl \
-moco_vit_base_ep100_bs16x8x1_imagenet100_blr0.0005_id0 \
+v12_copy_vit_base_d3t12_f1_inim0.5_k2_m0.9in0.5out0.75_eperelative_tperelative_dperelative_c0.2_blr0.0005_0.0001_0.0001_infonce_patches_mixed_bs128x1x1_ep100_sgpeFalse_imagenet100_t0.2_id0 \
 latest
 
 
@@ -132,6 +133,19 @@ mae_vit_base_patch16_m0.75_ep100_bs128x1x1x1_imagenet100_blr0.0005_nnavg_pool_pr
 latest \
 /srv/home/wei96/checkpoints/mae2cl/
 
+bash sbatch_vitdet_b_im480.sh \
+morgadolab euler10 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+moco_vit_base_ep100_bs16x8x1_imagenet100_blr0.0005_id0 \
+latest
+
+bash sbatch_vitdet_b_im480.sh \
+morgadolab euler22 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+random \
+latest
 
 # small
 bash sbatch_vitdet_s_im480.sh \
@@ -142,10 +156,85 @@ moco_vit_small_ep100_bs32x4x1_imagenet100_blr0.0005_id0 \
 latest
 
 bash sbatch_vitdet_s_im480.sh \
+morgadolab euler22 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+mae_vit_small_patch16_m0.75_ep100_bs128x1x1_imagenet100_blr0.0005_id2/checkpoints/checkpoint_latest.pth \
+latest /srv/home/wei96/checkpoints/mae2cl
+
+bash sbatch_vitdet_s_im480.sh \
 morgadolab euler10 4 1 0.0005 6 10 \
 0.1 0.1 \
 /srv/home/wei96/checkpoints/mae2cl \
 v13_vit_small_d3t12_k2_m0.9in112out0.25_blr0.0005_0.0001_0.0001_infonce_patches_bs128x1x1_ep100_imagenet100_id1 \
 latest
 
-# large
+bash sbatch_vitdet_s_im480.sh \
+morgadolab euler22 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+random \
+latest
+
+bash sbatch_vitdet_b_im480.sh \
+morgadolab euler10 8 1 0.0005 3 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+moco_vit_base_ep100_bs16x8x1_imagenet100_blr0.00015_id0 \
+latest
+
+
+# vit-large
+bash sbatch_vitdet_l_im480.sh \
+morgadolab euler10 8 1 0.0002 3 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+moco_vit_large_ep100_bs32x4x1_imagenet100_blr0.00015_id1 \
+latest
+
+bash sbatch_vitdet_l_im480.sh \
+morgadolab euler10 8 1 0.0005 3 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+mae_vit_large_patch16_m0.75_ep100_bs64x2x1_imagenet100_blr0.0005_id2/checkpoints/checkpoint_latest.pth \
+latest /srv/home/wei96/checkpoints/mae2cl
+
+bash sbatch_vitdet_l_im480.sh \
+morgadolab euler10 8 1 0.0005 3 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+v13_vit_large_d3t24_k1_m0.825in160out0.25_blr0.0005_0.0001_0.0001_infonce_patches_bs128x1x1x1_ep100_imagenet100_id0 \
+latest
+
+bash sbatch_vitdet_l_im480.sh \
+morgadolab euler10 8 1 0.0005 3 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+random_large \
+latest
+
+# table 4
+# a) reg
+bash sbatch_vitdet_b_im480.sh \
+morgadolab euler28 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+v14_vit_base_d3t12_k2_m0.9in1out1_blr0.0005_0.0001_0.0001_infonce_patches_allFalse_regTrue_bs128x1x1_ep100_imagenet100_id2 \
+latest
+
+# b) mixed loss
+bash sbatch_vitdet_b_im480.sh \
+morgadolab euler28 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+v12_copy_vit_base_d3t12_f1_inim0.5_k2_m0.9in0.5out0.75_eperelative_tperelative_dperelative_c0.2_blr0.0005_0.0001_0.0001_infonce_patches_mixed_bs128x1x1_ep100_sgpeFalse_imagenet100_t0.2_id0 \
+latest
+
+
+bash sbatch_vitdet_b_im480.sh \
+morgadolab euler28 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+v12_copy_vit_base_d3t12_f1_inim0_k2_m0.9in0.5out0.75_eperelative_tperelative_dperelative_c0.2_blr0.0005_0.0001_0.0001_infonce_patches_mixed_bs128x1x1_ep100_sgpeFalse_imagenet100_t0.2_id0 \
+latest
+# c)

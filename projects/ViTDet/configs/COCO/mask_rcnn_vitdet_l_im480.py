@@ -10,7 +10,7 @@ import detectron2.data.transforms as T
 
 image_size = 480 #480 bs6 per gpu #640 4 per gpu
 
-## MDOEL
+## MDOEL- ViT-Large
 model = model_zoo.get_config("common/models/mask_rcnn_vitdet.py").model #configs/common/models/mask_rcnn_vitdet.py
 model.backbone.net.img_size = image_size
 model.backbone.square_pad = image_size
