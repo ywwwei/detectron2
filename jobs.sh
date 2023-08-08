@@ -238,3 +238,19 @@ morgadolab euler28 4 1 0.0005 6 10 \
 v12_copy_vit_base_d3t12_f1_inim0_k2_m0.9in0.5out0.75_eperelative_tperelative_dperelative_c0.2_blr0.0005_0.0001_0.0001_infonce_patches_mixed_bs128x1x1_ep100_sgpeFalse_imagenet100_t0.2_id0 \
 latest
 # c)
+
+# partition=$1 nodelist=$2 ngpus=$3 accum_iter=$4 lr=$5 bs=$6 epochs=$7
+# wd=$8 dp=$9
+# ckpt_dir=${12}
+# pretrain_job_name=${13}
+# checkpoint_epoch=${14}
+# modelzoo_dir=${15}
+# base
+
+# BootMAE
+bash sbatch_vitdet_b_im480_BeiTViT.sh \
+morgadolab euler22 4 1 0.0005 6 10 \
+0.1 0.1 \
+/srv/home/wei96/checkpoints/mae2cl \
+bootmae_base_blr0.0005_bs128x1_ep100_imagenet100_id0 \
+latest

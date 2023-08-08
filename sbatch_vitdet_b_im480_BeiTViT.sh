@@ -33,7 +33,7 @@ sbatch <<EOT
 #SBATCH --output=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480/log.out
 #SBATCH --error=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im480/log.err	
 
-tools/lazyconfig_train_net.py \
+tools/lazyconfig_train_det2_mim.py \
 --config-file projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b_im480_beitViT.py \
 --resume --num-gpus ${ngpus} --dist-url tcp://127.0.0.1:${port} \
 pretrain_job_name=${pretrain_job_name} modelzoo_dir=${modelzoo_dir} \
