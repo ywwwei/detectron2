@@ -25,7 +25,7 @@ model.backbone = L(SimpleFeaturePyramid)(
         drop_path_rate=dp,
         window_size=14,
         mlp_ratio=4,
-        qkv_bias=False,
+        qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
         window_block_indexes=[
             # 2, 5, 8 11 for global attention
