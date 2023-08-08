@@ -132,7 +132,7 @@ def cfg_overrides(cfg):
     elif cfg.pretrain_job_name.endswith(".pth"):
         cfg.train.init_checkpoint = os.path.join(cfg.modelzoo_dir,cfg.pretrain_job_name)
     else:
-        cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints",f"checkpoint_{cfg.ckpt_epoch}_detectron2.pth")
+        cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints",f"checkpoint_{cfg.ckpt_epoch}.pth")
         
     cfg.job_name=f"det_bs{cfg.bs}x{cfg.ngpus}x{cfg.accum_iter}_blr{cfg.optimizer.lr}_wd{cfg.optimizer.weight_decay}_dp{cfg.model.backbone.net.drop_path_rate}_{cfg.pretrain_job_name}_{cfg.ckpt_epoch}_ep{cfg.epochs}_im{cfg.model.backbone.net.img_size}"
     cfg.train.output_dir = f"{cfg.ckpt_dir}/{cfg.job_name}"

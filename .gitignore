@@ -53,3 +53,4 @@ _darcs
 /snippet
 
 jobs.sh
+rsync_job.sh

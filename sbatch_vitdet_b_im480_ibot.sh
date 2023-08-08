@@ -38,7 +38,7 @@ tools/lazyconfig_train_net.py \
 --resume --num-gpus ${ngpus} --dist-url tcp://127.0.0.1:${port} \
 pretrain_job_name=${pretrain_job_name} modelzoo_dir=${modelzoo_dir} \
 ckpt_dir=${ckpt_dir} \
-epochs=${epochs} warmup_iters=1000 ckpt_epoch=${checkpoint_epoch}_detectron2 \
+epochs=${epochs} warmup_iters=1000 ckpt_epoch=${checkpoint_epoch} \
 bs=${bs} ngpus=${ngpus} accum_iter=${accum_iter} optimizer.lr=${lr} \
 optimizer.weight_decay=${wd} model.backbone.net.drop_path_rate=${dp} \
 log.use_wandb=True log.wandb_entity=mae-vs-clr log.wandb_project=mae2cl_det
