@@ -162,7 +162,7 @@ class PeriodicWriter(HookBase):
     Note that ``period`` does not affect how data is smoothed by each writer.
     """
 
-    def __init__(self, writers, period=20):
+    def __init__(self, writers, period=20, eval_period=None):
         """
         Args:
             writers (list[EventWriter]): a list of EventWriter objects
@@ -172,9 +172,11 @@ class PeriodicWriter(HookBase):
         for w in writers:
             assert isinstance(w, EventWriter), w
         self._period = period
+        self._eval_period = eval_period if eval_period is not None else period
 
     def after_step(self):
         if (self.trainer.iter + 1) % self._period == 0 or (
+            self.trainer.iter + 1) % self._eval_period == 0 or (
             self.trainer.iter == self.trainer.max_iter - 1
         ):
             for writer in self._writers:

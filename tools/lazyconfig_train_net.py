@@ -32,6 +32,9 @@ from detectron2.utils import comm
 from detectron2.utils.events import TensorboardXWriter,WandbWriter
 import os
 
+from detectron2.config import LazyCall as L
+import detectron2.data.transforms as T
+
 logger = logging.getLogger("detectron2")
 
 
@@ -99,6 +102,7 @@ def do_train(args, cfg):
             hooks.EvalHook(cfg.train.eval_period, lambda: do_test(cfg, model)),
             hooks.PeriodicWriter(writers,
                 period=cfg.train.log_period,
+                eval_period=cfg.train.eval_period,
             )
             if comm.is_main_process()
             else None,
@@ -115,17 +119,33 @@ def do_train(args, cfg):
     trainer.train(start_iter, cfg.train.max_iter)
 
 def cfg_overrides(cfg):
-    # cfg.dataloader.train.total_batch_size
+    image_size = cfg.image_size
+    cfg.model.backbone.net.img_size = image_size
+    cfg.model.backbone.square_pad = image_size
+
+    cfg.dataloader.train.mapper.augmentations = [
+        L(T.RandomFlip)(horizontal=True),  # flip first
+        L(T.ResizeScale)(
+            min_scale=0.1, max_scale=2.0, target_height=image_size, target_width=image_size
+        ),
+        L(T.FixedSizeCrop)(crop_size=(image_size, image_size), pad=False),
+    ]
+    cfg.dataloader.test.mapper.augmentations = [
+        L(T.ResizeShortestEdge)(short_edge_length=image_size, max_size=image_size),
+    ]
+
     num_images = 117266
     cfg.dataloader.train.total_batch_size=cfg.bs*cfg.ngpus
     num_images_per_iter = num_images//cfg.dataloader.train.total_batch_size
     cfg.train.num_images_per_iter = num_images_per_iter
     cfg.train.checkpointer=dict(period=num_images_per_iter, max_to_keep=100) # checkpoint every epoch
-    cfg.train.eval_period=num_images_per_iter
+    cfg.train.eval_period=num_images_per_iter*cfg.eval_freq
     
     cfg.train.max_iter=cfg.train.num_images_per_iter * cfg.epochs
     
     cfg.lr_multiplier.warmup_length = cfg.warmup_iters / cfg.train.max_iter
+    cfg.lr_multiplier.scheduler.num_updates=cfg.train.max_iter
+
     
     if "random" in cfg.pretrain_job_name:
         cfg.train.init_checkpoint = None
@@ -133,8 +153,9 @@ def cfg_overrides(cfg):
         cfg.train.init_checkpoint = os.path.join(cfg.modelzoo_dir,cfg.pretrain_job_name)
     else:
         cfg.train.init_checkpoint = os.path.join(cfg.ckpt_dir,cfg.pretrain_job_name,"checkpoints",f"checkpoint_{cfg.ckpt_epoch}.pth")
-        
-    cfg.job_name=f"det_bs{cfg.bs}x{cfg.ngpus}x{cfg.accum_iter}_blr{cfg.optimizer.lr}_wd{cfg.optimizer.weight_decay}_dp{cfg.model.backbone.net.drop_path_rate}_{cfg.pretrain_job_name}_{cfg.ckpt_epoch}_ep{cfg.epochs}_im{cfg.model.backbone.net.img_size}"
+    
+    if cfg.job_name is None:
+        cfg.job_name=f"det_bs{cfg.bs}x{cfg.ngpus}x{cfg.accum_iter}_blr{cfg.optimizer.lr}_wd{cfg.optimizer.weight_decay}_dp{cfg.model.backbone.net.drop_path_rate}_{cfg.pretrain_job_name}_{cfg.ckpt_epoch}_ep{cfg.epochs}_im{cfg.model.backbone.net.img_size}"
     cfg.train.output_dir = f"{cfg.ckpt_dir}/{cfg.job_name}"
     
     return cfg
