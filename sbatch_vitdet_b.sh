@@ -2,7 +2,6 @@
 
 # Default values
 partition="morgadolab"
-nodelist="euler10"
 ngpus=2
 accum_iter=8
 image_size=1024
@@ -20,7 +19,6 @@ modelzoo_dir="/srv/home/wei96/modelzoo"
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     --partition) partition="$2"; shift ;;
-    --nodelist) nodelist="$2"; shift ;;
     --ngpus) ngpus="$2"; shift ;;
     --accum_iter) accum_iter="$2"; shift ;;
     --image_size) image_size="$2"; shift ;;
@@ -47,7 +45,6 @@ echo "mem=$((60*${ngpus}))G"
 echo "cpus-per-task=$((12*${ngpus}))"
 
 echo partition=${partition}
-echo nodelist=${nodelist}
 echo ngpus=${ngpus}
 echo accum_iter=${accum_iter}
 echo image_size=${image_size}
@@ -66,14 +63,14 @@ sbatch <<EOT
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH --gres=gpu:${ngpus}
-#SBATCH --job-name=det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im${image_size} # Job name
+#SBATCH --job-name=det_${pretrain_job_name}_im${image_size} # Job name
 #SBATCH --partition=${partition}
 # #SBATCH --nodelist=${nodelist}
 #SBATCH --cpus-per-task=$((14*${ngpus})) 
 #SBATCH --mem=$((30*${ngpus}))G    
 #SBATCH --time=12:00:00    
-#SBATCH --output=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im${image_size}/log.out
-#SBATCH --error=${ckpt_dir}/det_bs${bs}x${ngpus}x${accum_iter}_blr${lr}_wd${wd}_dp${dp}_${pretrain_job_name}_${checkpoint_epoch}_ep${epochs}_im${image_size}/log.err    
+#SBATCH --output=${ckpt_dir}/det_${pretrain_job_name}_im${image_size}/log.out
+#SBATCH --error=${ckpt_dir}/det_${pretrain_job_name}_im${image_size}/log.err    
 
 tools/lazyconfig_train_net.py \
 --config-file projects/ViTDet/configs/COCO/mask_rcnn_vitdet_b.py \
